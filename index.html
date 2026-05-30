@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>点餐小程序</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">扫码点餐</p>
+          <h1>云上小馆</h1>
+        </div>
+        <button class="ghost-button" id="reset-cart" type="button">清空</button>
+      </header>
+
+      <main class="layout">
+        <aside class="category-panel" aria-label="菜品分类">
+          <div class="category-title">分类</div>
+          <nav id="category-list" class="category-list"></nav>
+        </aside>
+
+        <section class="menu-panel">
+          <div class="search-row">
+            <label class="search-box">
+              <span>搜索</span>
+              <input id="search-input" type="search" placeholder="菜名、描述" />
+            </label>
+            <label class="table-box">
+              <span>桌号</span>
+              <input id="table-input" type="text" placeholder="A08" maxlength="8" />
+            </label>
+          </div>
+          <div id="menu-list" class="menu-list"></div>
+        </section>
+
+        <aside class="cart-panel" aria-label="购物车">
+          <div class="cart-header">
+            <div>
+              <p class="eyebrow">已选菜品</p>
+              <h2>购物车</h2>
+            </div>
+            <span id="cart-count" class="cart-count">0</span>
+          </div>
+
+          <div id="cart-list" class="cart-list"></div>
+
+          <label class="note-box">
+            <span>备注</span>
+            <textarea id="note-input" rows="3" placeholder="少辣、不要香菜、打包..."></textarea>
+          </label>
+
+          <div class="totals">
+            <div>
+              <span>小计</span>
+              <strong id="cart-total">¥0</strong>
+            </div>
+            <div>
+              <span>服务费</span>
+              <strong>¥0</strong>
+            </div>
+          </div>
+
+          <button class="primary-button" id="submit-order" type="button">提交订单</button>
+        </aside>
+      </main>
+    </div>
+
+    <dialog id="order-dialog" class="order-dialog">
+      <div class="dialog-header">
+        <h2>订单已生成</h2>
+        <button id="close-dialog" class="icon-button" type="button" aria-label="关闭">×</button>
+      </div>
+      <pre id="order-output"></pre>
+      <button id="print-order" class="primary-button" type="button">打印订单</button>
+    </dialog>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./data.js"></script>
+    <script src="./supabase-config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
