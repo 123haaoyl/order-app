@@ -175,8 +175,19 @@ textarea {
   padding: 12px;
 }
 
+select {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 0 12px;
+  font: inherit;
+}
+
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(199, 68, 46, 0.14);
 }
@@ -389,6 +400,139 @@ textarea:focus {
   color: var(--muted);
 }
 
+.ghost-link {
+  display: inline-grid;
+  min-height: 42px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  padding: 0 18px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.admin-shell {
+  width: min(1180px, 100%);
+}
+
+.admin-top-actions,
+.admin-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-panel,
+.stat-card,
+.order-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.94);
+  box-shadow: var(--shadow);
+}
+
+.admin-panel {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.admin-panel-header,
+.admin-toolbar,
+.order-card-header,
+.order-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.admin-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.feedback {
+  color: var(--accent-dark);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.stat-card span,
+.admin-muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.stat-card strong {
+  font-size: 28px;
+}
+
+.orders-list {
+  display: grid;
+  gap: 12px;
+}
+
+.order-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.order-card h3 {
+  font-size: 20px;
+}
+
+.status-select {
+  width: 120px;
+}
+
+.order-lines {
+  display: grid;
+  gap: 6px;
+}
+
+.order-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.order-card-footer span {
+  color: var(--muted);
+}
+
+.order-card-footer strong {
+  color: var(--accent-dark);
+  font-size: 20px;
+}
+
 .order-dialog {
   width: min(520px, calc(100% - 28px));
   border: 0;
@@ -450,8 +594,27 @@ textarea:focus {
   }
 
   .search-row,
-  .menu-list {
+  .menu-list,
+  .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-panel-header,
+  .admin-toolbar,
+  .order-card-header,
+  .order-card-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-controls,
+  .admin-top-actions {
+    width: 100%;
+  }
+
+  .admin-controls > *,
+  .admin-top-actions > * {
+    flex: 1;
   }
 
   .dish-card {

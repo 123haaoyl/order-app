@@ -1,5 +1,5 @@
 -- 在 Supabase Dashboard -> SQL Editor 里运行这段 SQL。
--- 运行后，顾客页面可以新增订单；订单查看请在 Supabase 的 Table Editor 里看 public.orders。
+-- 运行前，把文件末尾 insert 语句里的 your@email.com 换成你的后台登录邮箱。
 
 create table if not exists public.orders (
   id bigint generated always as identity primary key,
@@ -12,9 +12,36 @@ create table if not exists public.orders (
   order_text text not null default ''
 );
 
+create table if not exists public.app_admins (
+  email text primary key,
+  created_at timestamptz not null default now()
+);
+
 alter table public.orders enable row level security;
+alter table public.app_admins enable row level security;
+
+create or replace function public.is_order_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.app_admins
+    where lower(email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
+$$;
+
+grant usage on schema public to anon, authenticated;
+grant insert on public.orders to anon, authenticated;
+grant select, update on public.orders to authenticated;
+grant execute on function public.is_order_admin() to anon, authenticated;
 
 drop policy if exists "Anyone can create orders" on public.orders;
+drop policy if exists "Admins can read orders" on public.orders;
+drop policy if exists "Admins can update orders" on public.orders;
 
 create policy "Anyone can create orders"
 on public.orders
@@ -25,3 +52,20 @@ with check (
   and total >= 0
 );
 
+create policy "Admins can read orders"
+on public.orders
+for select
+to authenticated
+using (public.is_order_admin());
+
+create policy "Admins can update orders"
+on public.orders
+for update
+to authenticated
+using (public.is_order_admin())
+with check (public.is_order_admin());
+
+-- 把 your@email.com 换成你的后台登录邮箱，再运行这一行。
+insert into public.app_admins (email)
+values ('your@email.com')
+on conflict (email) do nothing;

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>订单后台</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell admin-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">后台端</p>
+          <h1>订单后台</h1>
+        </div>
+        <div class="admin-top-actions">
+          <a class="ghost-link" href="./index.html">客户端</a>
+          <button class="ghost-button" id="sign-out" type="button" hidden>退出</button>
+        </div>
+      </header>
+
+      <main class="admin-layout">
+        <section class="admin-panel" id="login-panel">
+          <div class="admin-panel-header">
+            <h2>登录</h2>
+            <p id="auth-message" class="feedback"></p>
+          </div>
+          <label class="admin-field">
+            <span>邮箱</span>
+            <input id="admin-email" type="email" autocomplete="email" />
+          </label>
+          <label class="admin-field">
+            <span>密码</span>
+            <input id="admin-password" type="password" autocomplete="current-password" />
+          </label>
+          <button class="primary-button" id="sign-in" type="button">进入后台</button>
+        </section>
+
+        <section class="admin-dashboard" id="dashboard" hidden>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span>今日订单</span>
+              <strong id="today-count">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>今日金额</span>
+              <strong id="today-total">¥0</strong>
+            </div>
+            <div class="stat-card">
+              <span>待处理</span>
+              <strong id="new-count">0</strong>
+            </div>
+          </div>
+
+          <section class="admin-panel">
+            <div class="admin-toolbar">
+              <div>
+                <p class="eyebrow">订单列表</p>
+                <h2>最近订单</h2>
+              </div>
+              <div class="admin-controls">
+                <select id="status-filter" aria-label="订单状态筛选">
+                  <option value="all">全部</option>
+                  <option value="new">新订单</option>
+                  <option value="preparing">制作中</option>
+                  <option value="done">已完成</option>
+                  <option value="canceled">已取消</option>
+                </select>
+                <button class="ghost-button" id="refresh-orders" type="button">刷新</button>
+              </div>
+            </div>
+            <div id="orders-list" class="orders-list"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./supabase-config.js"></script>
+    <script src="./admin.js"></script>
+  </body>
+</html>

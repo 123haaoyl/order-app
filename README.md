@@ -41,23 +41,39 @@
 
 ## 接入 Supabase 后台
 
-顾客提交订单后，会写入 Supabase 的 `orders` 表。为了安全，默认只允许网页新增订单，不允许公开读取订单。
+顾客提交订单后，会写入 Supabase 的 `orders` 表。后台页面是 `admin.html`，需要 Supabase Auth 登录后才能查看订单。
 
 1. 打开 Supabase 项目。
 2. 进入 `SQL Editor`。
-3. 新建 query，把 `supabase-schema.sql` 里的内容粘贴进去运行。
-4. 进入 `Project Settings` -> `API`。
-5. 复制 `anon public` key。
-6. 打开 `supabase-config.js`，把 `PASTE_YOUR_SUPABASE_ANON_PUBLIC_KEY_HERE` 替换成刚复制的 key。
-7. 把修改后的文件提交到 GitHub。
+3. 新建 query，把 `supabase-schema.sql` 里的内容粘贴进去。
+4. 把 SQL 末尾的 `your@email.com` 改成你的后台登录邮箱。
+5. 运行 SQL。
+6. 进入 `Authentication` -> `Users`。
+7. 用同一个邮箱创建后台用户，并设置密码。
+8. 进入 `Project Settings` -> `API`。
+9. 复制 `anon public` key。
+10. 打开 `supabase-config.js`，把 key 填进去。
+11. 把修改后的文件提交到 GitHub。
 
-看订单时，进入 Supabase 的 `Table Editor`，打开 `orders` 表即可。
+后台地址：
+
+```text
+https://123haaoyl.github.io/order-app/admin.html
+```
+
+客户端地址：
+
+```text
+https://123haaoyl.github.io/order-app/
+```
 
 ## 文件说明
 
 - `index.html`：页面结构。
 - `styles.css`：页面样式。
 - `app.js`：点餐、购物车、订单生成逻辑。
+- `admin.html`：后台页面。
+- `admin.js`：后台登录、订单读取、状态更新逻辑。
 - `data.js`：菜品数据，长期维护主要改这里。
 - `supabase-config.js`：Supabase 项目配置。
 - `supabase-schema.sql`：Supabase 建表和权限 SQL。
