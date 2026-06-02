@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>订单后台</title>
+    <title>商家管理后台</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
     <div class="app-shell admin-shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">后台端</p>
-          <h1>订单后台</h1>
+          <p class="eyebrow">B 端管理</p>
+          <h1>商家管理后台</h1>
         </div>
         <div class="admin-top-actions">
           <a class="ghost-link" href="./index.html">客户端</a>
@@ -37,45 +37,174 @@
         </section>
 
         <section class="admin-dashboard" id="dashboard" hidden>
-          <div class="stats-grid">
-            <div class="stat-card">
-              <span>今日订单</span>
-              <strong id="today-count">0</strong>
-            </div>
-            <div class="stat-card">
-              <span>今日金额</span>
-              <strong id="today-total">¥0</strong>
-            </div>
-            <div class="stat-card">
-              <span>待处理</span>
-              <strong id="new-count">0</strong>
-            </div>
-          </div>
+          <nav class="admin-tabs" aria-label="后台模块">
+            <button class="active" data-admin-tab="overview" type="button">老板看板</button>
+            <button data-admin-tab="orders" type="button">订单管理</button>
+            <button data-admin-tab="menu" type="button">菜品管理</button>
+            <button data-admin-tab="tables" type="button">桌台管理</button>
+            <button data-admin-tab="marketing" type="button">营销活动</button>
+            <button data-admin-tab="members" type="button">会员管理</button>
+            <button data-admin-tab="settings" type="button">店铺设置</button>
+            <button data-admin-tab="printing" type="button">打印配置</button>
+          </nav>
 
-          <section class="admin-panel">
-            <div class="admin-toolbar">
-              <div>
-                <p class="eyebrow">订单列表</p>
-                <h2>最近订单</h2>
+          <section class="admin-tab-panel active" data-admin-panel="overview">
+            <div class="stats-grid">
+              <div class="stat-card">
+                <span>今日订单</span>
+                <strong id="today-count">0</strong>
               </div>
-              <div class="admin-controls">
-                <select id="status-filter" aria-label="订单状态筛选">
-                  <option value="all">全部</option>
-                  <option value="new">新订单</option>
-                  <option value="preparing">制作中</option>
-                  <option value="done">已完成</option>
-                  <option value="canceled">已取消</option>
-                </select>
-                <button class="ghost-button" id="refresh-orders" type="button">刷新</button>
+              <div class="stat-card">
+                <span>今日金额</span>
+                <strong id="today-total">¥0</strong>
+              </div>
+              <div class="stat-card">
+                <span>待处理</span>
+                <strong id="new-count">0</strong>
+              </div>
+              <div class="stat-card">
+                <span>优惠支出</span>
+                <strong id="discount-spend">¥0</strong>
               </div>
             </div>
-            <div id="orders-list" class="orders-list"></div>
+            <section class="admin-panel">
+              <div class="admin-toolbar">
+                <div>
+                  <p class="eyebrow">热销菜品</p>
+                  <h2>排行</h2>
+                </div>
+              </div>
+              <div id="hot-dish-list" class="compact-list"></div>
+            </section>
+          </section>
+
+          <section class="admin-tab-panel" data-admin-panel="orders">
+            <section class="admin-panel">
+              <div class="admin-toolbar">
+                <div>
+                  <p class="eyebrow">实时接单</p>
+                  <h2>订单管理</h2>
+                </div>
+                <div class="admin-controls">
+                  <input id="order-search" type="search" placeholder="桌号、订单号、菜品" />
+                  <input id="order-date" type="date" />
+                  <select id="status-filter" aria-label="订单状态筛选">
+                    <option value="all">全部</option>
+                    <option value="new">待接单</option>
+                    <option value="preparing">后厨备餐</option>
+                    <option value="served">出餐</option>
+                    <option value="done">完成</option>
+                    <option value="canceled">已取消</option>
+                  </select>
+                  <button class="ghost-button" id="export-orders" type="button">导出</button>
+                  <button class="ghost-button" id="refresh-orders" type="button">刷新</button>
+                </div>
+              </div>
+              <div id="orders-list" class="orders-list"></div>
+            </section>
+          </section>
+
+          <section class="admin-tab-panel" data-admin-panel="menu">
+            <section class="admin-panel">
+              <div class="admin-toolbar">
+                <div>
+                  <p class="eyebrow">核心</p>
+                  <h2>菜品管理</h2>
+                </div>
+                <div class="admin-controls">
+                  <button class="ghost-button" id="bulk-on" type="button">批量上架</button>
+                  <button class="ghost-button" id="bulk-off" type="button">批量下架</button>
+                </div>
+              </div>
+              <div id="menu-admin-list" class="admin-table"></div>
+            </section>
+          </section>
+
+          <section class="admin-tab-panel" data-admin-panel="tables">
+            <section class="admin-panel">
+              <div class="admin-toolbar">
+                <div>
+                  <p class="eyebrow">堂食</p>
+                  <h2>桌台管理</h2>
+                </div>
+              </div>
+              <div id="table-admin-list" class="table-grid"></div>
+            </section>
+          </section>
+
+          <section class="admin-tab-panel" data-admin-panel="marketing">
+            <section class="admin-panel">
+              <div class="admin-toolbar">
+                <div>
+                  <p class="eyebrow">活动</p>
+                  <h2>优惠券与会员活动</h2>
+                </div>
+              </div>
+              <div id="coupon-admin-list" class="admin-table"></div>
+            </section>
+          </section>
+
+          <section class="admin-tab-panel" data-admin-panel="members">
+            <section class="admin-panel">
+              <div class="admin-toolbar">
+                <div>
+                  <p class="eyebrow">会员</p>
+                  <h2>会员管理</h2>
+                </div>
+              </div>
+              <div id="member-admin-list" class="admin-table"></div>
+            </section>
+          </section>
+
+          <section class="admin-tab-panel" data-admin-panel="settings">
+            <section class="admin-panel">
+              <div class="admin-toolbar">
+                <div>
+                  <p class="eyebrow">门店</p>
+                  <h2>店铺设置</h2>
+                </div>
+                <label class="switch-row">
+                  <input id="shop-open" type="checkbox" checked />
+                  <span>营业中</span>
+                </label>
+              </div>
+              <div id="shop-settings" class="settings-grid"></div>
+            </section>
+          </section>
+
+          <section class="admin-tab-panel" data-admin-panel="printing">
+            <section class="admin-panel">
+              <div class="admin-toolbar">
+                <div>
+                  <p class="eyebrow">后厨</p>
+                  <h2>打印配置</h2>
+                </div>
+              </div>
+              <div class="settings-grid">
+                <div class="setting-card">
+                  <span>热菜打印机</span>
+                  <strong>Kitchen-Hot-01</strong>
+                  <p>热菜、主食自动分单</p>
+                </div>
+                <div class="setting-card">
+                  <span>凉菜打印机</span>
+                  <strong>Kitchen-Cold-01</strong>
+                  <p>凉菜、饮品自动分单</p>
+                </div>
+                <div class="setting-card">
+                  <span>打印状态</span>
+                  <strong>待接入</strong>
+                  <p>需要后续绑定实体小票打印机服务</p>
+                </div>
+              </div>
+            </section>
           </section>
         </section>
       </main>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./data.js"></script>
     <script src="./supabase-config.js"></script>
     <script src="./admin.js"></script>
   </body>

@@ -1,5 +1,59 @@
-// 以后你主要改这个文件就能调整菜品。
-// id 不能重复；category 会自动生成左侧分类；image 可以用 emoji，也可以换成图片地址。
+// 以后你主要改这个文件就能调整店铺、菜品、优惠券和桌台。
+
+window.SHOP_CONFIG = {
+  name: "云上小馆",
+  subtitle: "堂食扫码点餐，外卖自取都可以",
+  announcement: "满 88 减 10，新客下单送手打柠檬茶",
+  businessHours: "10:30-22:00",
+  address: "幸福路 88 号 1 层",
+  phone: "138-0000-8888",
+  minOrderAmount: 20,
+  packingFeePerDish: 1,
+  deliveryFee: 6,
+  deliveryRange: "3 公里",
+  autoCancelMinutes: 15,
+  serviceModes: ["dinein", "takeaway"],
+};
+
+window.TABLES = [
+  { id: "A01", area: "大厅", seats: 2, status: "idle" },
+  { id: "A08", area: "大厅", seats: 4, status: "idle" },
+  { id: "B02", area: "包厢", seats: 8, status: "reserved" },
+];
+
+window.COUPONS = [
+  {
+    id: "new-guest",
+    name: "新人券",
+    type: "amount",
+    threshold: 48,
+    value: 8,
+    validUntil: "2026-12-31",
+  },
+  {
+    id: "full-88-10",
+    name: "满 88 减 10",
+    type: "amount",
+    threshold: 88,
+    value: 10,
+    validUntil: "2026-12-31",
+  },
+  {
+    id: "drink-95",
+    name: "饮品 95 折",
+    type: "discount",
+    threshold: 30,
+    value: 0.95,
+    validUntil: "2026-12-31",
+  },
+];
+
+window.MEMBER_PROFILE = {
+  phone: "未登录",
+  points: 268,
+  balance: 50,
+};
+
 window.MENU_ITEMS = [
   {
     id: "beef-noodle",
@@ -8,7 +62,13 @@ window.MENU_ITEMS = [
     price: 28,
     image: "🍜",
     tag: "热卖",
+    rank: 1,
+    stock: 58,
     description: "牛腱肉、手工面、浓郁清汤底",
+    specs: [
+      { name: "份量", options: [{ label: "标准", priceDelta: 0 }, { label: "加肉", priceDelta: 8 }] },
+      { name: "辣度", options: [{ label: "不辣", priceDelta: 0 }, { label: "微辣", priceDelta: 0 }, { label: "中辣", priceDelta: 0 }] },
+    ],
   },
   {
     id: "rice-chicken",
@@ -17,7 +77,13 @@ window.MENU_ITEMS = [
     price: 32,
     image: "🍱",
     tag: "推荐",
+    rank: 3,
+    stock: 36,
     description: "去骨鸡腿、温泉蛋、时蔬配菜",
+    specs: [
+      { name: "米饭", options: [{ label: "正常", priceDelta: 0 }, { label: "加饭", priceDelta: 3 }] },
+      { name: "酱汁", options: [{ label: "正常", priceDelta: 0 }, { label: "少酱", priceDelta: 0 }] },
+    ],
   },
   {
     id: "dumpling",
@@ -26,7 +92,12 @@ window.MENU_ITEMS = [
     price: 24,
     image: "🥟",
     tag: "",
+    rank: 8,
+    stock: 45,
     description: "现包水饺，搭配蒜香蘸汁",
+    specs: [
+      { name: "数量", options: [{ label: "12 个", priceDelta: 0 }, { label: "18 个", priceDelta: 10 }] },
+    ],
   },
   {
     id: "spicy-chicken",
@@ -35,7 +106,13 @@ window.MENU_ITEMS = [
     price: 46,
     image: "🍗",
     tag: "微辣",
+    rank: 2,
+    stock: 28,
     description: "外酥里嫩，花椒香气足",
+    specs: [
+      { name: "辣度", options: [{ label: "微辣", priceDelta: 0 }, { label: "中辣", priceDelta: 0 }, { label: "重辣", priceDelta: 0 }] },
+      { name: "份量", options: [{ label: "标准", priceDelta: 0 }, { label: "大份", priceDelta: 16 }] },
+    ],
   },
   {
     id: "fish",
@@ -44,7 +121,13 @@ window.MENU_ITEMS = [
     price: 68,
     image: "🐟",
     tag: "招牌",
+    rank: 4,
+    stock: 18,
     description: "黑鱼片、酸菜、金汤酸辣口",
+    specs: [
+      { name: "份量", options: [{ label: "2 人份", priceDelta: 0 }, { label: "4 人份", priceDelta: 38 }] },
+      { name: "辣度", options: [{ label: "微辣", priceDelta: 0 }, { label: "中辣", priceDelta: 0 }] },
+    ],
   },
   {
     id: "tofu",
@@ -53,7 +136,12 @@ window.MENU_ITEMS = [
     price: 26,
     image: "🥘",
     tag: "素食",
+    rank: 7,
+    stock: 40,
     description: "豆腐煎香，酱汁浓郁下饭",
+    specs: [
+      { name: "口味", options: [{ label: "家常", priceDelta: 0 }, { label: "麻辣", priceDelta: 0 }] },
+    ],
   },
   {
     id: "cucumber",
@@ -62,7 +150,12 @@ window.MENU_ITEMS = [
     price: 16,
     image: "🥒",
     tag: "清爽",
+    rank: 5,
+    stock: 66,
     description: "蒜香醋汁，开胃解腻",
+    specs: [
+      { name: "口味", options: [{ label: "蒜香", priceDelta: 0 }, { label: "酸辣", priceDelta: 0 }] },
+    ],
   },
   {
     id: "salad",
@@ -71,7 +164,12 @@ window.MENU_ITEMS = [
     price: 22,
     image: "🥗",
     tag: "低脂",
+    rank: 9,
+    stock: 26,
     description: "新鲜蔬菜、玉米、油醋汁",
+    specs: [
+      { name: "酱汁", options: [{ label: "油醋汁", priceDelta: 0 }, { label: "芝麻酱", priceDelta: 2 }] },
+    ],
   },
   {
     id: "milk-tea",
@@ -80,7 +178,13 @@ window.MENU_ITEMS = [
     price: 18,
     image: "🧋",
     tag: "冰/热",
+    rank: 6,
+    stock: 80,
     description: "茉莉茶底，奶香轻盈",
+    specs: [
+      { name: "温度", options: [{ label: "冰", priceDelta: 0 }, { label: "热", priceDelta: 0 }] },
+      { name: "甜度", options: [{ label: "三分糖", priceDelta: 0 }, { label: "五分糖", priceDelta: 0 }, { label: "七分糖", priceDelta: 0 }] },
+    ],
   },
   {
     id: "lemon-tea",
@@ -88,7 +192,13 @@ window.MENU_ITEMS = [
     category: "饮品",
     price: 16,
     image: "🍋",
-    tag: "",
+    tag: "人气",
+    rank: 10,
+    stock: 72,
     description: "清新酸甜，默认少冰",
+    specs: [
+      { name: "冰量", options: [{ label: "少冰", priceDelta: 0 }, { label: "正常冰", priceDelta: 0 }, { label: "去冰", priceDelta: 0 }] },
+      { name: "甜度", options: [{ label: "半糖", priceDelta: 0 }, { label: "正常糖", priceDelta: 0 }] },
+    ],
   },
 ];

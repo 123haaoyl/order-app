@@ -11,10 +11,37 @@
       <header class="topbar">
         <div>
           <p class="eyebrow">扫码点餐</p>
-          <h1>云上小馆</h1>
+          <h1 id="shop-name">云上小馆</h1>
         </div>
-        <button class="ghost-button" id="reset-cart" type="button">清空</button>
+        <div class="admin-top-actions">
+          <a class="ghost-link" href="#order-center">订单</a>
+          <a class="ghost-link" href="#member-center">会员</a>
+          <a class="ghost-link" href="./admin.html">后台</a>
+          <button class="ghost-button" id="reset-cart" type="button">清空</button>
+        </div>
       </header>
+
+      <section class="shop-hero">
+        <div>
+          <p id="shop-announcement" class="eyebrow">今日营业</p>
+          <h2 id="shop-subtitle">堂食扫码点餐，外卖自取都可以</h2>
+          <div class="shop-meta">
+            <span id="business-hours"></span>
+            <span id="shop-address"></span>
+            <span id="shop-phone"></span>
+          </div>
+        </div>
+        <div class="mode-card">
+          <div class="segmented" id="order-type-tabs">
+            <button class="active" data-order-type="dinein" type="button">到店</button>
+            <button data-order-type="takeaway" type="button">外卖</button>
+          </div>
+          <div class="table-bind">
+            <span>桌号</span>
+            <strong id="bound-table">未选择</strong>
+          </div>
+        </div>
+      </section>
 
       <main class="layout">
         <aside class="category-panel" aria-label="菜品分类">
@@ -28,11 +55,19 @@
               <span>搜索</span>
               <input id="search-input" type="search" placeholder="菜名、描述" />
             </label>
-            <label class="table-box">
+            <label class="table-box" id="table-field">
               <span>桌号</span>
-              <input id="table-input" type="text" placeholder="A08" maxlength="8" />
+              <input id="table-input" type="text" placeholder="A08" maxlength="12" />
             </label>
           </div>
+
+          <div class="quick-row">
+            <button class="chip-button active" data-quick-filter="all" type="button">全部</button>
+            <button class="chip-button" data-quick-filter="hot" type="button">热门排行</button>
+            <button class="chip-button" data-quick-filter="recommend" type="button">猜你喜欢</button>
+            <button class="chip-button" data-quick-filter="available" type="button">有库存</button>
+          </div>
+
           <div id="menu-list" class="menu-list"></div>
         </section>
 
@@ -47,26 +82,116 @@
 
           <div id="cart-list" class="cart-list"></div>
 
+          <div class="checkout-fields" id="takeaway-fields" hidden>
+            <label class="note-box">
+              <span>收货地址</span>
+              <input id="address-input" type="text" placeholder="小区、门牌号" />
+            </label>
+            <label class="note-box">
+              <span>送达时段</span>
+              <select id="delivery-time">
+                <option value="尽快送达">尽快送达</option>
+                <option value="30 分钟后">30 分钟后</option>
+                <option value="60 分钟后">60 分钟后</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="note-box">
+            <span>优惠券</span>
+            <select id="coupon-select"></select>
+          </label>
+
           <label class="note-box">
             <span>备注</span>
             <textarea id="note-input" rows="3" placeholder="少辣、不要香菜、打包..."></textarea>
           </label>
 
+          <label class="note-box">
+            <span>支付方式</span>
+            <select id="payment-method">
+              <option value="wechat">微信支付</option>
+              <option value="alipay">支付宝</option>
+              <option value="cash">到店支付</option>
+            </select>
+          </label>
+
           <div class="totals">
             <div>
-              <span>小计</span>
-              <strong id="cart-total">¥0</strong>
+              <span>菜品总价</span>
+              <strong id="subtotal-total">¥0</strong>
             </div>
             <div>
-              <span>服务费</span>
-              <strong>¥0</strong>
+              <span>打包费</span>
+              <strong id="packing-total">¥0</strong>
+            </div>
+            <div>
+              <span>配送费</span>
+              <strong id="delivery-total">¥0</strong>
+            </div>
+            <div>
+              <span>优惠抵扣</span>
+              <strong id="discount-total">¥0</strong>
+            </div>
+            <div class="payable-row">
+              <span>实付</span>
+              <strong id="cart-total">¥0</strong>
             </div>
           </div>
 
           <button class="primary-button" id="submit-order" type="button">提交订单</button>
         </aside>
       </main>
+
+      <section class="customer-sections">
+        <section class="admin-panel" id="order-center">
+          <div class="admin-toolbar">
+            <div>
+              <p class="eyebrow">订单中心</p>
+              <h2>我的订单</h2>
+            </div>
+            <button class="ghost-button" id="refresh-local-orders" type="button">刷新</button>
+          </div>
+          <div id="local-orders-list" class="orders-list"></div>
+        </section>
+
+        <section class="admin-panel" id="member-center">
+          <div class="admin-toolbar">
+            <div>
+              <p class="eyebrow">会员中心</p>
+              <h2>积分与储值</h2>
+            </div>
+            <span id="member-phone" class="dish-tag">未登录</span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span>积分</span>
+              <strong id="member-points">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>余额</span>
+              <strong id="member-balance">¥0</strong>
+            </div>
+            <div class="stat-card">
+              <span>消费次数</span>
+              <strong id="member-orders">0</strong>
+            </div>
+          </div>
+        </section>
+      </section>
     </div>
+
+    <dialog id="dish-dialog" class="order-dialog">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow" id="dish-dialog-tag"></p>
+          <h2 id="dish-dialog-title"></h2>
+        </div>
+        <button id="close-dish-dialog" class="icon-button" type="button" aria-label="关闭">×</button>
+      </div>
+      <div id="dish-dialog-body"></div>
+      <button id="add-configured-dish" class="primary-button" type="button">加入购物车</button>
+    </dialog>
 
     <dialog id="order-dialog" class="order-dialog">
       <div class="dialog-header">
@@ -75,6 +200,14 @@
       </div>
       <pre id="order-output"></pre>
       <button id="print-order" class="primary-button" type="button">打印订单</button>
+    </dialog>
+
+    <dialog id="coupon-dialog" class="order-dialog">
+      <div class="dialog-header">
+        <h2>今日优惠</h2>
+        <button id="close-coupon-dialog" class="icon-button" type="button" aria-label="关闭">×</button>
+      </div>
+      <div id="coupon-dialog-list" class="coupon-dialog-list"></div>
     </dialog>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

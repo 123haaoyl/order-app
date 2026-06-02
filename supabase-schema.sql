@@ -4,21 +4,53 @@
 create table if not exists public.orders (
   id bigint generated always as identity primary key,
   created_at timestamptz not null default now(),
+  order_type text not null default 'dinein',
   table_no text not null default '',
+  delivery_address text not null default '',
+  delivery_time text not null default '',
+  payment_method text not null default '',
+  coupon_id text not null default '',
+  coupon_name text not null default '',
   note text not null default '',
   items jsonb not null,
+  subtotal numeric(10, 2) not null default 0,
+  packing_fee numeric(10, 2) not null default 0,
+  delivery_fee numeric(10, 2) not null default 0,
+  discount numeric(10, 2) not null default 0,
+  payable numeric(10, 2) not null default 0,
   total numeric(10, 2) not null default 0,
   status text not null default 'new',
   order_text text not null default ''
 );
+
+alter table public.orders add column if not exists order_type text not null default 'dinein';
+alter table public.orders add column if not exists delivery_address text not null default '';
+alter table public.orders add column if not exists delivery_time text not null default '';
+alter table public.orders add column if not exists payment_method text not null default '';
+alter table public.orders add column if not exists coupon_id text not null default '';
+alter table public.orders add column if not exists coupon_name text not null default '';
+alter table public.orders add column if not exists subtotal numeric(10, 2) not null default 0;
+alter table public.orders add column if not exists packing_fee numeric(10, 2) not null default 0;
+alter table public.orders add column if not exists delivery_fee numeric(10, 2) not null default 0;
+alter table public.orders add column if not exists discount numeric(10, 2) not null default 0;
+alter table public.orders add column if not exists payable numeric(10, 2) not null default 0;
 
 create table if not exists public.app_admins (
   email text primary key,
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.order_system_notes (
+  id bigint generated always as identity primary key,
+  module text not null,
+  title text not null,
+  content text not null default '',
+  created_at timestamptz not null default now()
+);
+
 alter table public.orders enable row level security;
 alter table public.app_admins enable row level security;
+alter table public.order_system_notes enable row level security;
 
 create or replace function public.is_order_admin()
 returns boolean
@@ -50,6 +82,7 @@ to anon, authenticated
 with check (
   jsonb_typeof(items) = 'array'
   and total >= 0
+  and payable >= 0
 );
 
 create policy "Admins can read orders"
