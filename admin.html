@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>商家管理后台</title>
     <script src="./theme.js?v=fuzhou-menu"></script>
-    <link rel="stylesheet" href="./styles.css?v=layout-polish" />
+    <link rel="stylesheet" href="./styles.css?v=category-pagination" />
   </head>
   <body>
     <div class="app-shell admin-shell">
@@ -125,18 +125,21 @@
                   <button class="ghost-button" id="open-dish-form" type="button">新增菜品</button>
                 </div>
               </div>
-              <section class="category-admin-panel">
-                <div class="section-title-row">
+              <section class="category-admin-panel is-collapsed" id="category-admin-panel">
+                <div class="section-title-row category-panel-head">
                   <div>
                     <p class="eyebrow">分类</p>
                     <h3>分类管理</h3>
                   </div>
+                  <button class="ghost-button" id="toggle-category-admin" type="button" aria-expanded="false">展开分类</button>
+                </div>
+                <div class="category-admin-body" id="category-admin-body">
                   <div class="category-add-controls">
                     <input id="new-category-name" type="text" placeholder="新分类名称" />
                     <button class="ghost-button" id="add-category" type="button">新增分类</button>
                   </div>
+                  <div id="category-admin-list" class="category-admin-list"></div>
                 </div>
-                <div id="category-admin-list" class="category-admin-list"></div>
               </section>
               <div class="menu-bulk-toolbar">
                 <label class="bulk-check">
@@ -160,6 +163,11 @@
               <div class="pagination-bar">
                 <button class="ghost-button" id="menu-prev-page" type="button">上一页</button>
                 <span id="menu-page-info">第 1 / 1 页</span>
+                <label class="page-jump-control">
+                  <span>跳至</span>
+                  <input id="menu-page-jump" type="number" min="1" value="1" aria-label="跳转到后台菜品页码" />
+                </label>
+                <button class="ghost-button" id="menu-jump-page" type="button">跳转</button>
                 <button class="ghost-button" id="menu-next-page" type="button">下一页</button>
               </div>
             </section>
@@ -329,6 +337,6 @@
     <div class="app-toast" id="app-toast" role="status" aria-live="polite" hidden></div>
 
     <script src="./data.js?v=menu-100"></script>
-    <script src="./admin.js?v=multi-admin"></script>
+    <script src="./admin.js?v=category-pagination"></script>
   </body>
 </html>

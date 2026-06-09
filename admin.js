@@ -48,6 +48,8 @@ const dishIconOptions = document.querySelector("#dish-icon-options");
 const specBuilder = document.querySelector("#spec-builder");
 const addSpecGroup = document.querySelector("#add-spec-group");
 const saveNewDish = document.querySelector("#save-new-dish");
+const categoryAdminPanel = document.querySelector("#category-admin-panel");
+const toggleCategoryAdmin = document.querySelector("#toggle-category-admin");
 const categoryAdminList = document.querySelector("#category-admin-list");
 const newCategoryName = document.querySelector("#new-category-name");
 const addCategory = document.querySelector("#add-category");
@@ -60,6 +62,8 @@ const menuPageSize = document.querySelector("#menu-page-size");
 const menuPrevPage = document.querySelector("#menu-prev-page");
 const menuNextPage = document.querySelector("#menu-next-page");
 const menuPageInfo = document.querySelector("#menu-page-info");
+const menuPageJump = document.querySelector("#menu-page-jump");
+const menuJumpPage = document.querySelector("#menu-jump-page");
 const rollFoodDice = document.querySelector("#roll-food-dice");
 const spinFoodWheel = document.querySelector("#spin-food-wheel");
 const foodDice = document.querySelector("#food-dice");
@@ -86,6 +90,8 @@ let draftSpecs = [];
 let selectedDishIds = new Set();
 let menuPage = 1;
 let menuPageSizeValue = 12;
+let isCategoryAdminExpanded = false;
+let expandedCategoryName = "";
 let foodWheelRotation = 0;
 let deciderCandidates = [];
 let deciderSavedItems = [];
@@ -339,6 +345,7 @@ function renameCategory(oldName, newName) {
   menuItems
     .filter((item) => item.category === source)
     .forEach((item) => saveMenuOverride(item.id, { category: target }));
+  if (expandedCategoryName === source) expandedCategoryName = target;
   renderStaticModules();
   void syncMenuToCloud();
   showToast("分类已更新，顾客端刷新后生效");
@@ -370,9 +377,59 @@ function deleteMenuCategory(category) {
     return;
   }
   saveCategoryConfig(getMenuCategories().filter((item) => item !== name));
+  if (expandedCategoryName === name) expandedCategoryName = "";
   renderStaticModules();
   void syncMenuToCloud();
   showToast("分类已删除");
+}
+
+function setCategoryPanelExpanded(isExpanded) {
+  isCategoryAdminExpanded = Boolean(isExpanded);
+  categoryAdminPanel?.classList.toggle("is-collapsed", !isCategoryAdminExpanded);
+  if (toggleCategoryAdmin) {
+    toggleCategoryAdmin.setAttribute("aria-expanded", String(isCategoryAdminExpanded));
+    toggleCategoryAdmin.textContent = isCategoryAdminExpanded ? "收起分类" : "展开分类";
+  }
+}
+
+function toggleCategoryDetail(category) {
+  const name = String(category || "").trim();
+  expandedCategoryName = expandedCategoryName === name ? "" : name;
+  if (expandedCategoryName) setCategoryPanelExpanded(true);
+  renderCategoryAdmin();
+}
+
+function moveDishToCategory(dishId, category) {
+  const dish = menuItems.find((item) => item.id === dishId);
+  const target = String(category || "").trim();
+  if (!dish || !target) return;
+  ensureCategory(target);
+  saveMenuOverride(dish.id, { category: target });
+  renderStaticModules();
+  void syncMenuToCloud();
+  showToast(`${dish.name} 已移动到 ${target}`);
+}
+
+function removeDishFromCategory(dishId, category) {
+  const dish = menuItems.find((item) => item.id === dishId);
+  const source = String(category || "").trim();
+  if (!dish || !source) return;
+  const fallbackCategory = "未分类";
+  ensureCategory(fallbackCategory);
+  saveMenuOverride(dish.id, { category: fallbackCategory });
+  expandedCategoryName = source;
+  renderStaticModules();
+  void syncMenuToCloud();
+  showToast(`${dish.name} 已从 ${source} 移出`);
+}
+
+function addDishToCategoryFromSelect(category, dishId) {
+  if (!dishId) {
+    showToast("请选择要加入该分类的菜品");
+    return;
+  }
+  moveDishToCategory(dishId, category);
+  expandedCategoryName = category;
 }
 
 function saveTableOverride(tableId, patch) {
@@ -578,8 +635,19 @@ function updateMenuPagination() {
   if (menuPageInfo) {
     menuPageInfo.textContent = `第 ${menuPage} / ${totalPages} 页 · 共 ${total} 个菜品`;
   }
+  if (menuPageJump) {
+    menuPageJump.max = String(totalPages);
+    menuPageJump.value = String(menuPage);
+  }
   if (menuPrevPage) menuPrevPage.disabled = menuPage <= 1;
   if (menuNextPage) menuNextPage.disabled = menuPage >= totalPages;
+  if (menuJumpPage) menuJumpPage.disabled = totalPages <= 1;
+}
+
+function jumpAdminMenuPage(value) {
+  const totalPages = clampMenuPage();
+  menuPage = Math.min(Math.max(1, Math.floor(Number(value || 1)) || 1), totalPages);
+  renderMenuAdmin();
 }
 
 function deleteDish(dishId) {
@@ -966,15 +1034,50 @@ function renderMenuAdmin() {
 
 function renderCategoryAdmin() {
   if (!categoryAdminList) return;
+  setCategoryPanelExpanded(isCategoryAdminExpanded);
   const categories = getMenuCategories();
   categoryAdminList.innerHTML = categories
     .map((category) => {
-      const usedCount = menuItems.filter((item) => item.category === category).length;
+      const categoryItems = menuItems.filter((item) => item.category === category);
+      const usedCount = categoryItems.length;
+      const isExpanded = expandedCategoryName === category;
+      const addableItems = menuItems.filter((item) => item.category !== category);
       return `
         <div class="category-admin-row" data-category="${escapeHtml(category)}">
-          <input data-category-name type="text" value="${escapeHtml(category)}" aria-label="${escapeHtml(category)} 分类名称" />
-          <span>${usedCount} 个菜品</span>
-          <button class="danger-button" data-delete-category="${escapeHtml(category)}" type="button" ${usedCount > 0 ? "disabled" : ""}>删除</button>
+          <div class="category-admin-summary">
+            <input data-category-name type="text" value="${escapeHtml(category)}" aria-label="${escapeHtml(category)} 分类名称" />
+            <span>${usedCount} 个菜品</span>
+            <button class="ghost-button" data-toggle-category-detail="${escapeHtml(category)}" type="button">${isExpanded ? "收起" : "查看菜品"}</button>
+            <button class="danger-button" data-delete-category="${escapeHtml(category)}" type="button" ${usedCount > 0 ? "disabled" : ""}>删除</button>
+          </div>
+          ${isExpanded ? `
+            <div class="category-dish-panel">
+              <div class="category-dish-add">
+                <select data-category-add-select aria-label="加入 ${escapeHtml(category)} 的菜品">
+                  <option value="">选择其它分类菜品加入</option>
+                  ${addableItems
+                    .map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.image || "🍽️")} ${escapeHtml(item.name)} · ${escapeHtml(item.category)}</option>`)
+                    .join("")}
+                </select>
+                <button class="ghost-button" data-add-dish-to-category="${escapeHtml(category)}" type="button" ${addableItems.length ? "" : "disabled"}>加入分类</button>
+              </div>
+              <div class="category-dish-list">
+                ${categoryItems.length
+                  ? categoryItems
+                      .map(
+                        (item) => `
+                          <div class="category-dish-row" data-category-dish-id="${escapeHtml(item.id)}">
+                            <strong>${escapeHtml(item.image || "🍽️")} ${escapeHtml(item.name)}</strong>
+                            <small>${currency(item.price)} · ${item.isActive === false ? "下架" : "上架"}</small>
+                            <button class="ghost-button" data-remove-dish-from-category="${escapeHtml(item.id)}" type="button">移出</button>
+                          </div>
+                        `,
+                      )
+                      .join("")
+                  : `<div class="empty-state">这个分类里还没有菜品</div>`}
+              </div>
+            </div>
+          ` : ""}
         </div>
       `;
     })
@@ -1531,6 +1634,14 @@ menuNextPage?.addEventListener("click", () => {
   menuPage += 1;
   renderMenuAdmin();
 });
+menuJumpPage?.addEventListener("click", () => {
+  jumpAdminMenuPage(menuPageJump?.value);
+});
+menuPageJump?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    jumpAdminMenuPage(menuPageJump.value);
+  }
+});
 
 rollFoodDice?.addEventListener("click", rollFoodDecision);
 spinFoodWheel?.addEventListener("click", spinFoodDecision);
@@ -1562,6 +1673,9 @@ deciderCandidateList?.addEventListener("click", (event) => {
 submitDeciderOrder?.addEventListener("click", submitDeciderOrderList);
 
 addCategory?.addEventListener("click", addMenuCategory);
+toggleCategoryAdmin?.addEventListener("click", () => {
+  setCategoryPanelExpanded(!isCategoryAdminExpanded);
+});
 newCategoryName?.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     addMenuCategory();
@@ -1576,6 +1690,27 @@ categoryAdminList?.addEventListener("change", (event) => {
 });
 
 categoryAdminList?.addEventListener("click", (event) => {
+  const toggleDetailButton = event.target.closest("[data-toggle-category-detail]");
+  if (toggleDetailButton) {
+    toggleCategoryDetail(toggleDetailButton.dataset.toggleCategoryDetail);
+    return;
+  }
+
+  const addDishButton = event.target.closest("[data-add-dish-to-category]");
+  if (addDishButton) {
+    const row = addDishButton.closest("[data-category]");
+    const select = row?.querySelector("[data-category-add-select]");
+    addDishToCategoryFromSelect(addDishButton.dataset.addDishToCategory, select?.value);
+    return;
+  }
+
+  const removeDishButton = event.target.closest("[data-remove-dish-from-category]");
+  if (removeDishButton) {
+    const row = removeDishButton.closest("[data-category]");
+    removeDishFromCategory(removeDishButton.dataset.removeDishFromCategory, row?.dataset.category);
+    return;
+  }
+
   const deleteButton = event.target.closest("[data-delete-category]");
   if (!deleteButton) return;
   deleteMenuCategory(deleteButton.dataset.deleteCategory);

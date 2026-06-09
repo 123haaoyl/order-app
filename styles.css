@@ -375,6 +375,10 @@ select:focus {
   gap: 12px;
 }
 
+.menu-pagination-bar {
+  margin-top: 12px;
+}
+
 .dish-card {
   display: grid;
   grid-template-columns: 86px minmax(0, 1fr);
@@ -956,6 +960,23 @@ select:focus {
   padding: 14px;
 }
 
+.category-panel-head {
+  align-items: center;
+}
+
+.category-admin-body {
+  display: grid;
+  gap: 12px;
+}
+
+.category-admin-panel.is-collapsed {
+  gap: 0;
+}
+
+.category-admin-panel.is-collapsed .category-admin-body {
+  display: none;
+}
+
 .category-add-controls {
   display: grid;
   grid-template-columns: minmax(160px, 1fr) auto;
@@ -965,25 +986,65 @@ select:focus {
 
 .category-admin-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
 .category-admin-row {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 10px;
+}
+
+.category-admin-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.category-admin-row span,
+.category-dish-list small {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.category-dish-panel {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.category-dish-add {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.category-dish-list {
+  display: grid;
+  gap: 8px;
+}
+
+.category-dish-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 8px;
   align-items: center;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 10px;
+  background: var(--surface);
+  padding: 8px;
 }
 
-.category-admin-row span {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 800;
-  white-space: nowrap;
+.category-dish-row strong {
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .menu-bulk-toolbar,
@@ -1050,6 +1111,21 @@ select:focus {
   color: var(--muted);
   font-size: 13px;
   font-weight: 800;
+}
+
+.page-jump-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.page-jump-control input {
+  width: 76px;
+  min-height: 34px;
+  padding: 0 8px;
 }
 
 .editable-row input,
@@ -1647,6 +1723,9 @@ select:focus {
   .category-admin-list,
   .category-add-controls,
   .category-admin-row,
+  .category-admin-summary,
+  .category-dish-add,
+  .category-dish-row,
   .settings-grid,
   .decider-layout,
   .candidate-grid,

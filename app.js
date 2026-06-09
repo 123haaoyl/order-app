@@ -6,6 +6,11 @@ const shopConfig = window.SHOP_CONFIG || {};
 
 const categoryList = document.querySelector("#category-list");
 const menuList = document.querySelector("#menu-list");
+const customerMenuPrevPage = document.querySelector("#customer-menu-prev-page");
+const customerMenuNextPage = document.querySelector("#customer-menu-next-page");
+const customerMenuPageInfo = document.querySelector("#customer-menu-page-info");
+const customerMenuPageJump = document.querySelector("#customer-menu-page-jump");
+const customerMenuJumpPage = document.querySelector("#customer-menu-jump-page");
 const cartList = document.querySelector("#cart-list");
 const cartCount = document.querySelector("#cart-count");
 const cartTotal = document.querySelector("#cart-total");
@@ -50,6 +55,8 @@ let orderType = "dinein";
 let selectedDish = null;
 let selectedSpecIndexes = {};
 let toastTimer = null;
+let menuPage = 1;
+const menuPageSize = 12;
 const CART_STORAGE_KEY = "order-cart";
 const CUSTOMER_ORDERS_KEY = "customer-orders";
 const MENU_OVERRIDES_KEY = "order-menu-overrides";
@@ -484,6 +491,32 @@ function getFilteredItems() {
     .sort((a, b) => Number(a.rank || 99) - Number(b.rank || 99));
 }
 
+function clampCustomerMenuPage(totalItems = getFilteredItems().length) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / menuPageSize));
+  menuPage = Math.min(Math.max(1, menuPage), totalPages);
+  return totalPages;
+}
+
+function updateCustomerMenuPagination(totalItems) {
+  const totalPages = clampCustomerMenuPage(totalItems);
+  if (customerMenuPageInfo) {
+    customerMenuPageInfo.textContent = `第 ${menuPage} / ${totalPages} 页 · 共 ${totalItems} 个菜品`;
+  }
+  if (customerMenuPageJump) {
+    customerMenuPageJump.max = String(totalPages);
+    customerMenuPageJump.value = String(menuPage);
+  }
+  if (customerMenuPrevPage) customerMenuPrevPage.disabled = menuPage <= 1;
+  if (customerMenuNextPage) customerMenuNextPage.disabled = menuPage >= totalPages;
+  if (customerMenuJumpPage) customerMenuJumpPage.disabled = totalPages <= 1;
+}
+
+function jumpCustomerMenuPage(value) {
+  const totalPages = clampCustomerMenuPage();
+  menuPage = Math.min(Math.max(1, Math.floor(Number(value || 1)) || 1), totalPages);
+  renderMenu();
+}
+
 function renderCategories() {
   categoryList.innerHTML = categories
     .map(
@@ -499,12 +532,17 @@ function renderCategories() {
 function renderMenu() {
   const items = getFilteredItems();
   const monthlyCounts = getMonthlyOrderCounts();
+  clampCustomerMenuPage(items.length);
+  const start = (menuPage - 1) * menuPageSize;
+  const pageItems = items.slice(start, start + menuPageSize);
+  updateCustomerMenuPagination(items.length);
+
   if (!items.length) {
     menuList.innerHTML = `<div class="empty-state">没有找到相关菜品</div>`;
     return;
   }
 
-  menuList.innerHTML = items
+  menuList.innerHTML = pageItems
     .map((item) => {
       const soldOut = Number(item.stock || 0) <= 0;
       return `
@@ -781,6 +819,7 @@ document.addEventListener("click", (event) => {
   const categoryButton = event.target.closest("[data-category]");
   if (categoryButton) {
     activeCategory = categoryButton.dataset.category;
+    menuPage = 1;
     render();
     return;
   }
@@ -824,7 +863,26 @@ addConfiguredDish.addEventListener("click", () => {
   dishDialog.close();
 });
 
-searchInput.addEventListener("input", renderMenu);
+searchInput.addEventListener("input", () => {
+  menuPage = 1;
+  renderMenu();
+});
+customerMenuPrevPage?.addEventListener("click", () => {
+  menuPage -= 1;
+  renderMenu();
+});
+customerMenuNextPage?.addEventListener("click", () => {
+  menuPage += 1;
+  renderMenu();
+});
+customerMenuJumpPage?.addEventListener("click", () => {
+  jumpCustomerMenuPage(customerMenuPageJump?.value);
+});
+customerMenuPageJump?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    jumpCustomerMenuPage(customerMenuPageJump.value);
+  }
+});
 tableInput.addEventListener("input", () => {
   updateBoundTable();
 });
