@@ -1063,10 +1063,10 @@ function renderFoodResult(result, mode = "") {
   foodResult.innerHTML = `
     <p class="eyebrow">${mode === "dice" ? `骰子点数 ${result.point}` : "转盘结果"}</p>
     <h3>${escapeHtml(result.dish.image || "🍽️")} ${escapeHtml(result.dish.name)}</h3>
-    <p>${escapeHtml(getDishCue(result.dish))}</p>
+    <p>摇到了这个菜品。${escapeHtml(getDishCue(result.dish))}</p>
     <div class="decider-result-actions">
-      <button class="primary-button" data-save-decider-dish="${escapeHtml(result.dish.id)}" type="button" ${addDisabled}>加入清单</button>
-      <button class="ghost-button" data-reroll-decider type="button">不喜欢，再来</button>
+      <button class="primary-button decider-result-button" data-save-decider-dish="${escapeHtml(result.dish.id)}" type="button" ${addDisabled}>加入清单</button>
+      <button class="ghost-button decider-result-button" data-reroll-decider type="button">不喜欢，再来</button>
     </div>
   `;
 }
@@ -1082,13 +1082,19 @@ function renderCandidateList() {
   if (deciderRoundLabel) deciderRoundLabel.textContent = `${deciderCandidates.length} 个候选菜`;
   deciderCandidateList.innerHTML = deciderCandidates
     .map(
-      (dish, index) => `
+      (dish, index) => {
+        const isSaved = deciderSavedItems.some((item) => item.id === dish.id);
+        return `
         <article class="candidate-card ${deciderLastResult?.dish.id === dish.id ? "active" : ""}">
           <span class="candidate-index">${index + 1}</span>
           <strong>${escapeHtml(dish.image || "🍽️")} ${escapeHtml(dish.name)}</strong>
           <small>${escapeHtml(getDishCue(dish))}</small>
+          <button class="ghost-button candidate-add-button" data-candidate-decider-dish="${escapeHtml(dish.id)}" type="button" ${isSaved ? "disabled" : ""}>
+            ${isSaved ? "已加入" : "加入"}
+          </button>
         </article>
-      `,
+      `;
+      },
     )
     .join("");
 }
@@ -1133,6 +1139,15 @@ function saveDeciderDish(dishId) {
   }
   renderFoodDecider();
   showToast(`${dish.name} 已加入清单`);
+}
+
+function saveCandidateDish(dishId) {
+  const isWinningDish = deciderLastResult?.dish.id === dishId;
+  if (!isWinningDish) {
+    const confirmed = window.confirm("您没有骰中该菜品，但是看来你很喜欢这个菜品，依旧选择此菜品加入吗？");
+    if (!confirmed) return;
+  }
+  saveDeciderDish(dishId);
 }
 
 function removeDeciderDish(dishId) {
@@ -1254,7 +1269,7 @@ function rollFoodDecision() {
   window.setTimeout(() => {
     if (foodDice) foodDice.textContent = diceFaces[point - 1] || String(point);
     showDeciderResult({ dish, point }, "dice");
-  }, 1400);
+  }, 2100);
 }
 
 function spinFoodDecision() {
@@ -1277,7 +1292,7 @@ function spinFoodDecision() {
     void foodWheel.offsetWidth;
     foodWheel.classList.add("spinning");
   }
-  window.setTimeout(() => showDeciderResult({ dish, point: resultIndex + 1 }, "wheel"), 1800);
+  window.setTimeout(() => showDeciderResult({ dish, point: resultIndex + 1 }, "wheel"), 2600);
 }
 
 function renderStaticModules() {
@@ -1538,6 +1553,11 @@ deciderOrderList?.addEventListener("click", (event) => {
   const removeButton = event.target.closest("[data-remove-decider-dish]");
   if (!removeButton) return;
   removeDeciderDish(removeButton.dataset.removeDeciderDish);
+});
+deciderCandidateList?.addEventListener("click", (event) => {
+  const addButton = event.target.closest("[data-candidate-decider-dish]");
+  if (!addButton) return;
+  saveCandidateDish(addButton.dataset.candidateDeciderDish);
 });
 submitDeciderOrder?.addEventListener("click", submitDeciderOrderList);
 

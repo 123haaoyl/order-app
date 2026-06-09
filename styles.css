@@ -1049,7 +1049,7 @@ select:focus {
 }
 
 .dice-card.rolling {
-  animation: dice-roll 1400ms cubic-bezier(0.18, 0.82, 0.22, 1);
+  animation: dice-roll 2100ms cubic-bezier(0.16, 0.78, 0.18, 1);
 }
 
 .wheel-stage {
@@ -1114,7 +1114,7 @@ select:focus {
 }
 
 .food-wheel.spinning {
-  animation: wheel-spin 1800ms cubic-bezier(0.12, 0.76, 0.14, 1) both;
+  animation: wheel-spin 2600ms cubic-bezier(0.1, 0.74, 0.12, 1) both;
 }
 
 .decider-result {
@@ -1137,6 +1137,17 @@ select:focus {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.decider-action-button,
+.decider-result-button {
+  min-width: 118px;
+  min-height: 42px;
+  justify-content: center;
+}
+
+.decider-result-button {
+  flex: 1;
 }
 
 .decider-chip-list {
@@ -1175,7 +1186,7 @@ select:focus {
   position: relative;
   display: grid;
   gap: 6px;
-  min-height: 94px;
+  min-height: 128px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
@@ -1205,6 +1216,12 @@ select:focus {
 .candidate-card small {
   color: var(--muted);
   line-height: 1.5;
+}
+
+.candidate-add-button {
+  align-self: end;
+  min-height: 34px;
+  margin-top: 4px;
 }
 
 .decider-order-list {
