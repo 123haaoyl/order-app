@@ -1,5 +1,7 @@
 const menuItems = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
 const tables = Array.isArray(window.TABLES) ? window.TABLES : [];
+const defaultMenuItems = cloneData(menuItems);
+const defaultTables = cloneData(tables);
 const forceDemoMode = new URLSearchParams(window.location.search).get("demo") === "1";
 const useCloudApi = !forceDemoMode;
 const LOCAL_ORDERS_KEY = "customer-orders";
@@ -48,6 +50,21 @@ const saveNewDish = document.querySelector("#save-new-dish");
 const categoryAdminList = document.querySelector("#category-admin-list");
 const newCategoryName = document.querySelector("#new-category-name");
 const addCategory = document.querySelector("#add-category");
+const menuSelectPage = document.querySelector("#menu-select-page");
+const menuSelectionCount = document.querySelector("#menu-selection-count");
+const bulkMenuActive = document.querySelector("#bulk-menu-active");
+const bulkMenuInactive = document.querySelector("#bulk-menu-inactive");
+const bulkDeleteDishes = document.querySelector("#bulk-delete-dishes");
+const menuPageSize = document.querySelector("#menu-page-size");
+const menuPrevPage = document.querySelector("#menu-prev-page");
+const menuNextPage = document.querySelector("#menu-next-page");
+const menuPageInfo = document.querySelector("#menu-page-info");
+const rollFoodDice = document.querySelector("#roll-food-dice");
+const spinFoodWheel = document.querySelector("#spin-food-wheel");
+const foodDice = document.querySelector("#food-dice");
+const foodWheel = document.querySelector("#food-wheel");
+const foodResult = document.querySelector("#food-result");
+const deciderDirectionList = document.querySelector("#decider-direction-list");
 
 if (forceDemoMode) {
   const customerLink = document.querySelector('a[href="./index.html"]');
@@ -58,6 +75,10 @@ let latestOrders = [];
 let toastTimer = null;
 let selectedNewDishIcon = "🍽️";
 let draftSpecs = [];
+let selectedDishIds = new Set();
+let menuPage = 1;
+let menuPageSizeValue = 12;
+let foodWheelRotation = 0;
 
 const statusLabels = {
   new: "待接单",
@@ -68,9 +89,24 @@ const statusLabels = {
 };
 
 const dishIconList = ["🍜", "🍱", "🥟", "🍗", "🐟", "🥘", "🥒", "🥗", "🧋", "🍋", "🍚", "🍛", "🍲", "🥩", "🍤", "🍣", "🍔", "🍟", "🌮", "🍰", "☕", "🥤", "🍽️"];
+const deciderFallbackDirections = [
+  { title: "福州经典菜", cue: "酸甜、汤底、红糟、鱼丸肉燕都可以往这个方向走。", icon: "🍖" },
+  { title: "烟台山新派闽味", cue: "适合点一道有记忆点的创新菜，再配清爽饮品。", icon: "🌊" },
+  { title: "热乎主食小吃", cue: "鱼丸汤、锅边糊、肉燕一类，轻松不纠结。", icon: "🥣" },
+  { title: "甜品饮品收尾", cue: "今天不想吃太重，可以用甜品饮品做轻食方向。", icon: "🧋" },
+];
 
 function currency(value) {
   return `¥${Number(value || 0).toFixed(0)}`;
+}
+
+function cloneData(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function resetBaseData() {
+  menuItems.splice(0, menuItems.length, ...cloneData(defaultMenuItems));
+  tables.splice(0, tables.length, ...cloneData(defaultTables));
 }
 
 function slugify(value) {
@@ -144,6 +180,63 @@ function writeStorageArray(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function readMenuStateFromStorage() {
+  return {
+    overrides: readStorageObject(MENU_OVERRIDES_KEY),
+    customItems: readStorageArray(CUSTOM_MENU_KEY),
+    deletedIds: readStorageArray(DELETED_MENU_KEY),
+    categories: readStorageArray(CATEGORY_CONFIG_KEY),
+  };
+}
+
+function writeMenuStateToStorage(menu = {}) {
+  writeStorageObject(MENU_OVERRIDES_KEY, menu.overrides || {});
+  writeStorageArray(CUSTOM_MENU_KEY, Array.isArray(menu.customItems) ? menu.customItems : []);
+  writeStorageArray(DELETED_MENU_KEY, Array.isArray(menu.deletedIds) ? menu.deletedIds : []);
+  writeStorageArray(CATEGORY_CONFIG_KEY, Array.isArray(menu.categories) ? menu.categories : []);
+}
+
+function getPersistableMenuState() {
+  const storedMenu = readMenuStateFromStorage();
+  return {
+    overrides: storedMenu.overrides,
+    customItems: menuItems.filter((item) => item.isCustom),
+    deletedIds: storedMenu.deletedIds,
+    categories: getMenuCategories(),
+  };
+}
+
+async function syncMenuToCloud() {
+  if (!useCloudApi) return;
+  try {
+    await requestJson("./api/menu", {
+      method: "PUT",
+      body: JSON.stringify(getPersistableMenuState()),
+    });
+  } catch (error) {
+    showToast(getFriendlyErrorMessage(error, "菜单云端保存失败，本机已保存"));
+  }
+}
+
+async function loadCloudMenuState() {
+  if (!useCloudApi) return;
+  try {
+    const result = await requestJson("./api/menu");
+    if (result.menu) {
+      const hasCloudMenu =
+        Object.keys(result.menu.overrides || {}).length ||
+        (result.menu.customItems || []).length ||
+        (result.menu.deletedIds || []).length ||
+        (result.menu.categories || []).length;
+      if (hasCloudMenu) {
+        writeMenuStateToStorage(result.menu);
+      }
+    }
+  } catch (error) {
+    showToast(getFriendlyErrorMessage(error, "菜单云端读取失败，已使用本机缓存"));
+  }
+}
+
 function syncMenuVersion() {
   const menuVersion = String(window.SHOP_CONFIG?.menuVersion || "");
   if (!menuVersion || localStorage.getItem(MENU_VERSION_KEY) === menuVersion) return;
@@ -158,6 +251,8 @@ function normalizeTableStatus(status) {
 }
 
 function applyLocalDataOverrides() {
+  resetBaseData();
+
   readStorageArray(CUSTOM_MENU_KEY).forEach((dish) => {
     if (!dish?.id) return;
     const existing = menuItems.find((item) => item.id === dish.id);
@@ -231,6 +326,7 @@ function renameCategory(oldName, newName) {
     .filter((item) => item.category === source)
     .forEach((item) => saveMenuOverride(item.id, { category: target }));
   renderStaticModules();
+  void syncMenuToCloud();
   showToast("分类已更新，顾客端刷新后生效");
 }
 
@@ -247,6 +343,7 @@ function addMenuCategory() {
   saveCategoryConfig([...getMenuCategories(), name]);
   newCategoryName.value = "";
   renderStaticModules();
+  void syncMenuToCloud();
   showToast("分类已新增");
 }
 
@@ -260,6 +357,7 @@ function deleteMenuCategory(category) {
   }
   saveCategoryConfig(getMenuCategories().filter((item) => item !== name));
   renderStaticModules();
+  void syncMenuToCloud();
   showToast("分类已删除");
 }
 
@@ -399,31 +497,107 @@ function saveCustomDish(dish) {
   writeStorageArray(CUSTOM_MENU_KEY, customItems);
   menuItems.push(dish);
   ensureCategory(dish.category);
+  menuPage = Math.max(1, Math.ceil(menuItems.length / menuPageSizeValue));
   renderStaticModules();
+  void syncMenuToCloud();
+}
+
+function persistDishDeletion(dishId) {
+  const id = String(dishId || "");
+  if (!id) return false;
+
+  const customItems = readStorageArray(CUSTOM_MENU_KEY);
+  const isCustomDish = customItems.some((item) => item.id === id);
+  const nextCustomItems = customItems.filter((item) => item.id !== id);
+  writeStorageArray(CUSTOM_MENU_KEY, nextCustomItems);
+
+  if (!isCustomDish) {
+    const deletedIds = new Set(readStorageArray(DELETED_MENU_KEY));
+    deletedIds.add(id);
+    writeStorageArray(DELETED_MENU_KEY, [...deletedIds]);
+  }
+
+  const overrides = readStorageObject(MENU_OVERRIDES_KEY);
+  delete overrides[id];
+  writeStorageObject(MENU_OVERRIDES_KEY, overrides);
+
+  const index = menuItems.findIndex((item) => item.id === id);
+  if (index >= 0) menuItems.splice(index, 1);
+  selectedDishIds.delete(id);
+  return index >= 0;
+}
+
+function clampMenuPage() {
+  const totalPages = Math.max(1, Math.ceil(menuItems.length / menuPageSizeValue));
+  menuPage = Math.min(Math.max(1, menuPage), totalPages);
+  return totalPages;
+}
+
+function getPagedMenuItems() {
+  clampMenuPage();
+  const start = (menuPage - 1) * menuPageSizeValue;
+  return menuItems.slice(start, start + menuPageSizeValue);
+}
+
+function updateMenuBulkState(pageItems = getPagedMenuItems()) {
+  selectedDishIds = new Set([...selectedDishIds].filter((id) => menuItems.some((item) => item.id === id)));
+  const selectedCount = selectedDishIds.size;
+  const pageIds = pageItems.map((item) => item.id);
+  const selectedOnPage = pageIds.filter((id) => selectedDishIds.has(id)).length;
+
+  if (menuSelectPage) {
+    menuSelectPage.checked = pageIds.length > 0 && selectedOnPage === pageIds.length;
+    menuSelectPage.indeterminate = selectedOnPage > 0 && selectedOnPage < pageIds.length;
+    menuSelectPage.disabled = pageIds.length === 0;
+  }
+  if (menuSelectionCount) {
+    menuSelectionCount.textContent = `已选 ${selectedCount} 个`;
+  }
+  [bulkMenuActive, bulkMenuInactive, bulkDeleteDishes].forEach((button) => {
+    if (button) button.disabled = selectedCount === 0;
+  });
+}
+
+function updateMenuPagination() {
+  const totalPages = clampMenuPage();
+  const total = menuItems.length;
+  if (menuPageInfo) {
+    menuPageInfo.textContent = `第 ${menuPage} / ${totalPages} 页 · 共 ${total} 个菜品`;
+  }
+  if (menuPrevPage) menuPrevPage.disabled = menuPage <= 1;
+  if (menuNextPage) menuNextPage.disabled = menuPage >= totalPages;
 }
 
 function deleteDish(dishId) {
   if (!window.confirm("确定删除这个菜品吗？")) return;
 
-  const customItems = readStorageArray(CUSTOM_MENU_KEY);
-  const isCustomDish = customItems.some((item) => item.id === dishId);
-  const nextCustomItems = customItems.filter((item) => item.id !== dishId);
-  writeStorageArray(CUSTOM_MENU_KEY, nextCustomItems);
-
-  if (!isCustomDish) {
-    const deletedIds = new Set(readStorageArray(DELETED_MENU_KEY));
-    deletedIds.add(dishId);
-    writeStorageArray(DELETED_MENU_KEY, [...deletedIds]);
-  }
-
-  const overrides = readStorageObject(MENU_OVERRIDES_KEY);
-  delete overrides[dishId];
-  writeStorageObject(MENU_OVERRIDES_KEY, overrides);
-
-  const index = menuItems.findIndex((item) => item.id === dishId);
-  if (index >= 0) menuItems.splice(index, 1);
+  persistDishDeletion(dishId);
   renderStaticModules();
+  void syncMenuToCloud();
   showToast("菜品已删除，顾客端刷新后生效");
+}
+
+function bulkDeleteSelectedDishes() {
+  const ids = [...selectedDishIds];
+  if (!ids.length) return;
+  if (!window.confirm(`确定删除选中的 ${ids.length} 个菜品吗？`)) return;
+
+  const deletedCount = ids.reduce((count, id) => count + (persistDishDeletion(id) ? 1 : 0), 0);
+  selectedDishIds.clear();
+  clampMenuPage();
+  renderStaticModules();
+  void syncMenuToCloud();
+  showToast(`已删除 ${deletedCount} 个菜品，顾客端刷新后生效`);
+}
+
+function bulkSetDishActive(isActive) {
+  const ids = [...selectedDishIds];
+  if (!ids.length) return;
+
+  ids.forEach((dishId) => saveMenuOverride(dishId, { isActive }));
+  renderStaticModules();
+  void syncMenuToCloud();
+  showToast(`已批量${isActive ? "上架" : "下架"} ${ids.length} 个菜品`);
 }
 
 function saveNewDishFromForm() {
@@ -733,6 +907,33 @@ async function loadOrders() {
 }
 
 function renderMenuAdmin() {
+  const pageItems = getPagedMenuItems();
+  const rows = pageItems.length
+    ? pageItems
+        .map(
+          (item) => `
+            <div class="admin-table-row editable-row" data-dish-id="${escapeHtml(item.id)}">
+              <label class="menu-select-cell">
+                <input data-select-dish="${escapeHtml(item.id)}" type="checkbox" ${selectedDishIds.has(item.id) ? "checked" : ""} />
+                <span>${escapeHtml(item.image)} ${escapeHtml(item.name)}</span>
+              </label>
+              <input data-menu-field="category" type="text" value="${escapeHtml(item.category)}" aria-label="${escapeHtml(item.name)} 分类" />
+              <input data-menu-field="tag" type="text" value="${escapeHtml(item.tag || "")}" placeholder="如 招牌、创新" aria-label="${escapeHtml(item.name)} 标签" />
+              <input data-menu-field="price" type="number" min="0" step="1" value="${Number(item.price || 0)}" aria-label="${escapeHtml(item.name)} 价格" />
+              <input data-menu-field="stock" type="number" min="0" step="1" value="${Number(item.stock || 0)}" aria-label="${escapeHtml(item.name)} 库存" />
+              <select data-menu-field="isActive" aria-label="${escapeHtml(item.name)} 上架状态">
+                <option value="true" ${item.isActive !== false ? "selected" : ""}>上架</option>
+                <option value="false" ${item.isActive === false ? "selected" : ""}>下架</option>
+              </select>
+              <span>
+                <button class="danger-button" data-delete-dish="${escapeHtml(item.id)}" type="button">删除</button>
+              </span>
+            </div>
+          `,
+        )
+        .join("")
+    : `<div class="empty-state">暂无菜品，先新增一个菜品</div>`;
+
   document.querySelector("#menu-admin-list").innerHTML = `
     <div class="admin-table-row head">
       <span>菜品</span>
@@ -743,27 +944,10 @@ function renderMenuAdmin() {
       <span>状态</span>
       <span>操作</span>
     </div>
-    ${menuItems
-      .map(
-        (item) => `
-          <div class="admin-table-row editable-row" data-dish-id="${escapeHtml(item.id)}">
-            <span>${escapeHtml(item.image)} ${escapeHtml(item.name)}</span>
-            <input data-menu-field="category" type="text" value="${escapeHtml(item.category)}" aria-label="${escapeHtml(item.name)} 分类" />
-            <input data-menu-field="tag" type="text" value="${escapeHtml(item.tag || "")}" placeholder="如 招牌、创新" aria-label="${escapeHtml(item.name)} 标签" />
-            <input data-menu-field="price" type="number" min="0" step="1" value="${Number(item.price || 0)}" aria-label="${escapeHtml(item.name)} 价格" />
-            <input data-menu-field="stock" type="number" min="0" step="1" value="${Number(item.stock || 0)}" aria-label="${escapeHtml(item.name)} 库存" />
-            <select data-menu-field="isActive" aria-label="${escapeHtml(item.name)} 上架状态">
-              <option value="true" ${item.isActive !== false ? "selected" : ""}>上架</option>
-              <option value="false" ${item.isActive === false ? "selected" : ""}>下架</option>
-            </select>
-            <span>
-              <button class="danger-button" data-delete-dish="${escapeHtml(item.id)}" type="button">删除</button>
-            </span>
-          </div>
-        `,
-      )
-      .join("")}
+    ${rows}
   `;
+  updateMenuPagination();
+  updateMenuBulkState(pageItems);
 }
 
 function renderCategoryAdmin() {
@@ -812,11 +996,92 @@ function renderTables() {
     .join("");
 }
 
+function getDeciderDirections() {
+  const activeItems = menuItems.filter((item) => item.isActive !== false);
+  if (!activeItems.length) return deciderFallbackDirections;
+
+  const categoryDirections = getMenuCategories()
+    .map((category) => {
+      const items = activeItems.filter((item) => item.category === category);
+      if (!items.length) return null;
+      const hotItem = [...items].sort((a, b) => Number(b.monthlySales || 0) - Number(a.monthlySales || 0))[0];
+      return {
+        title: category,
+        cue: `可以从「${hotItem.name}」开始点，再搭配同类菜。`,
+        icon: hotItem.image || "🍽️",
+      };
+    })
+    .filter(Boolean);
+
+  const dishDirections = [...activeItems]
+    .sort((a, b) => Number(b.monthlySales || 0) - Number(a.monthlySales || 0))
+    .slice(0, 6)
+    .map((item) => ({
+      title: item.name,
+      cue: `${item.category} · ${item.tag || "今日灵感"} · ${currency(item.price)} 起`,
+      icon: item.image || "🍽️",
+    }));
+
+  return [...categoryDirections, ...dishDirections].slice(0, 10);
+}
+
+function pickFoodDirection() {
+  const directions = getDeciderDirections();
+  return directions[Math.floor(Math.random() * directions.length)] || deciderFallbackDirections[0];
+}
+
+function renderFoodDecider() {
+  if (!foodWheel || !deciderDirectionList) return;
+  const directions = getDeciderDirections();
+  foodWheel.innerHTML = directions
+    .slice(0, 8)
+    .map((item, index) => `<span style="--i:${index}; --total:${Math.min(directions.length, 8)}">${escapeHtml(item.icon)}</span>`)
+    .join("");
+  deciderDirectionList.innerHTML = directions
+    .slice(0, 8)
+    .map((item) => `<span>${escapeHtml(item.icon)} ${escapeHtml(item.title)}</span>`)
+    .join("");
+}
+
+function showFoodDecision(direction, mode) {
+  if (!direction || !foodResult) return;
+  foodResult.innerHTML = `
+    <p class="eyebrow">${mode === "wheel" ? "转盘结果" : "骰子结果"}</p>
+    <h3>${escapeHtml(direction.icon)} ${escapeHtml(direction.title)}</h3>
+    <p>${escapeHtml(direction.cue)}</p>
+  `;
+  showToast(`今天吃：${direction.title}`);
+}
+
+function rollFoodDecision() {
+  const direction = pickFoodDirection();
+  if (foodDice) {
+    foodDice.classList.remove("rolling");
+    void foodDice.offsetWidth;
+    foodDice.classList.add("rolling");
+    foodDice.textContent = direction.icon;
+  }
+  window.setTimeout(() => showFoodDecision(direction, "dice"), 420);
+}
+
+function spinFoodDecision() {
+  const direction = pickFoodDirection();
+  foodWheelRotation += 720 + Math.floor(Math.random() * 360);
+  if (foodWheel) {
+    foodWheel.style.setProperty("--spin", `${foodWheelRotation}deg`);
+    foodWheel.classList.remove("spinning");
+    void foodWheel.offsetWidth;
+    foodWheel.classList.add("spinning");
+  }
+  window.setTimeout(() => showFoodDecision(direction, "wheel"), 650);
+}
+
 function renderStaticModules() {
   renderCategoryAdmin();
   renderMenuAdmin();
   renderTables();
   renderNewDishCategories();
+  renderFoodDecider();
 }
 
 async function signIn() {
@@ -852,6 +1117,7 @@ async function signIn() {
     setSessionView(true);
     renderStaticModules();
     await loadOrders();
+    void syncMenuToCloud();
   } catch (error) {
     showAuthMessage(getFriendlyErrorMessage(error, "登录失败，请检查网络后重试。"));
   } finally {
@@ -974,6 +1240,17 @@ ordersList.addEventListener("click", (event) => {
 });
 
 document.querySelector("#menu-admin-list").addEventListener("change", (event) => {
+  const selection = event.target.closest("[data-select-dish]");
+  if (selection) {
+    if (selection.checked) {
+      selectedDishIds.add(selection.dataset.selectDish);
+    } else {
+      selectedDishIds.delete(selection.dataset.selectDish);
+    }
+    updateMenuBulkState();
+    return;
+  }
+
   const field = event.target.closest("[data-menu-field]");
   if (!field) return;
   const row = field.closest("[data-dish-id]");
@@ -994,6 +1271,7 @@ document.querySelector("#menu-admin-list").addEventListener("change", (event) =>
   }
   saveMenuOverride(dishId, patch);
   renderStaticModules();
+  void syncMenuToCloud();
   showToast("菜品信息已保存，顾客端刷新后生效");
 });
 
@@ -1002,6 +1280,41 @@ document.querySelector("#menu-admin-list").addEventListener("click", (event) => 
   if (!deleteButton) return;
   deleteDish(deleteButton.dataset.deleteDish);
 });
+
+menuSelectPage?.addEventListener("change", () => {
+  const pageItems = getPagedMenuItems();
+  pageItems.forEach((item) => {
+    if (menuSelectPage.checked) {
+      selectedDishIds.add(item.id);
+    } else {
+      selectedDishIds.delete(item.id);
+    }
+  });
+  renderMenuAdmin();
+});
+
+bulkMenuActive?.addEventListener("click", () => bulkSetDishActive(true));
+bulkMenuInactive?.addEventListener("click", () => bulkSetDishActive(false));
+bulkDeleteDishes?.addEventListener("click", bulkDeleteSelectedDishes);
+
+menuPageSize?.addEventListener("change", () => {
+  menuPageSizeValue = Math.max(1, Number(menuPageSize.value || 12));
+  menuPage = 1;
+  renderMenuAdmin();
+});
+
+menuPrevPage?.addEventListener("click", () => {
+  menuPage -= 1;
+  renderMenuAdmin();
+});
+
+menuNextPage?.addEventListener("click", () => {
+  menuPage += 1;
+  renderMenuAdmin();
+});
+
+rollFoodDice?.addEventListener("click", rollFoodDecision);
+spinFoodWheel?.addEventListener("click", spinFoodDecision);
 
 addCategory?.addEventListener("click", addMenuCategory);
 newCategoryName?.addEventListener("keydown", (event) => {
@@ -1122,6 +1435,7 @@ document.addEventListener("keydown", (event) => {
 
 async function boot() {
   syncMenuVersion();
+  await loadCloudMenuState();
   applyLocalDataOverrides();
   if (!overviewDate.value) overviewDate.value = toDateInputValue();
   renderStaticModules();
@@ -1135,6 +1449,7 @@ async function boot() {
   if (localStorage.getItem(ADMIN_TOKEN_KEY)) {
     setSessionView(true);
     await loadOrders();
+    void syncMenuToCloud();
     return;
   }
 

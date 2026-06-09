@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>商家管理后台</title>
     <script src="./theme.js?v=fuzhou-menu"></script>
-    <link rel="stylesheet" href="./styles.css?v=fuzhou-menu" />
+    <link rel="stylesheet" href="./styles.css?v=admin-bulk-decider" />
   </head>
   <body>
     <div class="app-shell admin-shell">
@@ -46,6 +46,7 @@
             <button class="active" data-admin-tab="overview" type="button">老板看板</button>
             <button data-admin-tab="orders" type="button">订单管理</button>
             <button data-admin-tab="menu" type="button">菜品管理</button>
+            <button data-admin-tab="decider" type="button">今天吃什么</button>
             <button data-admin-tab="tables" type="button">桌台管理</button>
             <button data-admin-tab="printing" type="button">打印配置</button>
           </nav>
@@ -137,7 +138,58 @@
                 </div>
                 <div id="category-admin-list" class="category-admin-list"></div>
               </section>
+              <div class="menu-bulk-toolbar">
+                <label class="bulk-check">
+                  <input id="menu-select-page" type="checkbox" />
+                  <span>本页全选</span>
+                </label>
+                <span id="menu-selection-count" class="admin-muted">已选 0 个</span>
+                <button class="ghost-button" id="bulk-menu-active" type="button" disabled>批量上架</button>
+                <button class="ghost-button" id="bulk-menu-inactive" type="button" disabled>批量下架</button>
+                <button class="danger-button" id="bulk-delete-dishes" type="button" disabled>批量删除</button>
+                <label class="page-size-control">
+                  <span>每页</span>
+                  <select id="menu-page-size" aria-label="菜品每页数量">
+                    <option value="8">8</option>
+                    <option value="12" selected>12</option>
+                    <option value="24">24</option>
+                  </select>
+                </label>
+              </div>
               <div id="menu-admin-list" class="admin-table"></div>
+              <div class="pagination-bar">
+                <button class="ghost-button" id="menu-prev-page" type="button">上一页</button>
+                <span id="menu-page-info">第 1 / 1 页</span>
+                <button class="ghost-button" id="menu-next-page" type="button">下一页</button>
+              </div>
+            </section>
+          </section>
+
+          <section class="admin-tab-panel" data-admin-panel="decider">
+            <section class="admin-panel food-decider-panel">
+              <div class="admin-toolbar">
+                <div>
+                  <p class="eyebrow">灵感</p>
+                  <h2>今天吃什么</h2>
+                </div>
+                <div class="admin-controls">
+                  <button class="ghost-button" id="roll-food-dice" type="button">摇骰子</button>
+                  <button class="primary-button" id="spin-food-wheel" type="button">转转盘</button>
+                </div>
+              </div>
+              <div class="decider-layout">
+                <div class="dice-card" id="food-dice" aria-live="polite">🎲</div>
+                <div class="wheel-stage" aria-hidden="true">
+                  <span class="wheel-pointer"></span>
+                  <div class="food-wheel" id="food-wheel"></div>
+                </div>
+                <article class="decider-result" id="food-result">
+                  <p class="eyebrow">等待开摇</p>
+                  <h3>今天交给一点随机性</h3>
+                  <p>从当前上架菜品和分类里抽一个方向。</p>
+                </article>
+              </div>
+              <div class="decider-chip-list" id="decider-direction-list"></div>
             </section>
           </section>
 
@@ -252,6 +304,6 @@
     <div class="app-toast" id="app-toast" role="status" aria-live="polite" hidden></div>
 
     <script src="./data.js?v=fuzhou-menu"></script>
-    <script src="./admin.js?v=cloud-auth"></script>
+    <script src="./admin.js?v=bulk-decider"></script>
   </body>
 </html>

@@ -1,5 +1,7 @@
 const menuItems = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
 const tables = Array.isArray(window.TABLES) ? window.TABLES : [];
+const defaultMenuItems = cloneData(menuItems);
+const defaultTables = cloneData(tables);
 const shopConfig = window.SHOP_CONFIG || {};
 
 const categoryList = document.querySelector("#category-list");
@@ -73,6 +75,15 @@ function currency(value) {
   return `¥${Number(value || 0).toFixed(0)}`;
 }
 
+function cloneData(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function resetBaseData() {
+  menuItems.splice(0, menuItems.length, ...cloneData(defaultMenuItems));
+  tables.splice(0, tables.length, ...cloneData(defaultTables));
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -104,6 +115,32 @@ function writeStorageArray(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function writeStorageObject(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function writeMenuStateToStorage(menu = {}) {
+  writeStorageObject(MENU_OVERRIDES_KEY, menu.overrides || {});
+  writeStorageArray(CUSTOM_MENU_KEY, Array.isArray(menu.customItems) ? menu.customItems : []);
+  writeStorageArray(DELETED_MENU_KEY, Array.isArray(menu.deletedIds) ? menu.deletedIds : []);
+  writeStorageArray(CATEGORY_CONFIG_KEY, Array.isArray(menu.categories) ? menu.categories : []);
+}
+
+async function loadCloudMenuState() {
+  if (forceDemoMode) return false;
+  try {
+    const response = await fetch("./api/menu");
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.menu) return false;
+    writeMenuStateToStorage(result.menu);
+    applyLocalOverrides();
+    categories = getMenuCategories();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function syncMenuVersion() {
   const menuVersion = String(shopConfig.menuVersion || "");
   if (!menuVersion || localStorage.getItem(MENU_VERSION_KEY) === menuVersion) return;
@@ -124,6 +161,8 @@ function getMenuCategories() {
 }
 
 function applyLocalOverrides() {
+  resetBaseData();
+
   readStorageArray(CUSTOM_MENU_KEY).forEach((dish) => {
     if (!dish?.id) return;
     const existing = menuItems.find((item) => item.id === dish.id);
@@ -853,3 +892,9 @@ renderShop();
 bindTableFromUrl();
 render();
 renderLocalOrders();
+loadCloudMenuState().then((hasCloudMenu) => {
+  if (!hasCloudMenu) return;
+  cart = loadCart();
+  render();
+  renderLocalOrders();
+});

@@ -968,9 +968,185 @@ select:focus {
   white-space: nowrap;
 }
 
+.menu-bulk-toolbar,
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 10px;
+}
+
+.bulk-check,
+.page-size-control,
+.menu-select-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-weight: 800;
+}
+
+.menu-select-cell span {
+  overflow-wrap: anywhere;
+}
+
+.page-size-control {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.page-size-control select {
+  min-height: 34px;
+  padding: 0 28px 0 10px;
+}
+
+.pagination-bar {
+  justify-content: center;
+}
+
+.pagination-bar span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .editable-row input,
 .editable-row select {
   min-width: 0;
+}
+
+.food-decider-panel {
+  overflow: hidden;
+}
+
+.decider-layout {
+  display: grid;
+  grid-template-columns: 140px 220px minmax(0, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.dice-card,
+.wheel-stage,
+.decider-result {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.dice-card {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  font-size: 62px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.dice-card.rolling {
+  animation: dice-roll 520ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.wheel-stage {
+  position: relative;
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  padding: 16px;
+}
+
+.wheel-pointer {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  z-index: 1;
+  width: 0;
+  height: 0;
+  border-right: 10px solid transparent;
+  border-left: 10px solid transparent;
+  border-top: 0;
+  border-bottom: 18px solid var(--accent);
+  transform: translateX(-50%);
+}
+
+.food-wheel {
+  position: relative;
+  width: 172px;
+  aspect-ratio: 1;
+  border: 8px solid var(--line);
+  border-radius: 999px;
+  background:
+    conic-gradient(
+      from -20deg,
+      rgba(234, 89, 63, 0.9),
+      rgba(255, 185, 92, 0.85),
+      rgba(98, 168, 123, 0.86),
+      rgba(79, 139, 197, 0.86),
+      rgba(234, 89, 63, 0.9)
+    );
+  box-shadow: var(--shadow);
+  transform: rotate(var(--spin, 0deg));
+}
+
+.food-wheel::after {
+  content: "";
+  position: absolute;
+  inset: 50%;
+  width: 26px;
+  height: 26px;
+  border: 4px solid var(--panel);
+  border-radius: 999px;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+}
+
+.food-wheel span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 24px;
+  transform: rotate(calc(360deg / var(--total) * var(--i))) translate(62px) rotate(calc(-360deg / var(--total) * var(--i)));
+}
+
+.food-wheel.spinning {
+  animation: wheel-spin 680ms cubic-bezier(0.15, 0.76, 0.2, 1) both;
+}
+
+.decider-result {
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  padding: 18px;
+}
+
+.decider-result h3 {
+  font-size: 26px;
+}
+
+.decider-result p:last-child {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.decider-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.decider-chip-list span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .settings-grid {
@@ -1215,6 +1391,30 @@ select:focus {
   }
 }
 
+@keyframes dice-roll {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  35% {
+    transform: rotate(-16deg) scale(1.08);
+  }
+  70% {
+    transform: rotate(16deg) scale(0.96);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+@keyframes wheel-spin {
+  from {
+    transform: rotate(calc(var(--spin, 0deg) - 540deg));
+  }
+  to {
+    transform: rotate(var(--spin, 0deg));
+  }
+}
+
 @keyframes mobile-bar-in {
   from {
     opacity: 0;
@@ -1253,8 +1453,13 @@ select:focus {
   }
 
   .settings-grid,
+  .decider-layout,
   .table-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .decider-result {
+    grid-column: 1 / -1;
   }
 }
 
@@ -1283,6 +1488,7 @@ select:focus {
   .category-add-controls,
   .category-admin-row,
   .settings-grid,
+  .decider-layout,
   .table-grid {
     grid-template-columns: 1fr;
   }
@@ -1304,13 +1510,23 @@ select:focus {
   }
 
   .admin-controls,
-  .admin-top-actions {
+  .admin-top-actions,
+  .menu-bulk-toolbar {
     width: 100%;
   }
 
   .admin-controls > *,
-  .admin-top-actions > * {
+  .admin-top-actions > *,
+  .menu-bulk-toolbar > * {
     flex: 1;
+  }
+
+  .page-size-control {
+    margin-left: 0;
+  }
+
+  .wheel-stage {
+    min-height: 190px;
   }
 
   .dish-card {

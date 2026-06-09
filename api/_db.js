@@ -67,6 +67,13 @@ export async function ensureSchema() {
       )
     `;
     await sql`create index if not exists orders_created_at_idx on orders (created_at desc)`;
+    await sql`
+      create table if not exists app_config (
+        key text primary key,
+        value jsonb not null default '{}'::jsonb,
+        updated_at timestamptz not null default now()
+      )
+    `;
   })();
   return readyPromise;
 }
