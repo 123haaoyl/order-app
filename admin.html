@@ -124,6 +124,19 @@
                   <button class="ghost-button" id="open-dish-form" type="button">新增菜品</button>
                 </div>
               </div>
+              <section class="category-admin-panel">
+                <div class="section-title-row">
+                  <div>
+                    <p class="eyebrow">分类</p>
+                    <h3>分类管理</h3>
+                  </div>
+                  <div class="category-add-controls">
+                    <input id="new-category-name" type="text" placeholder="新分类名称" />
+                    <button class="ghost-button" id="add-category" type="button">新增分类</button>
+                  </div>
+                </div>
+                <div id="category-admin-list" class="category-admin-list"></div>
+              </section>
               <div id="menu-admin-list" class="admin-table"></div>
             </section>
           </section>
@@ -241,6 +254,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./data.js?v=fuzhou-menu"></script>
     <script src="./supabase-config.js"></script>
-    <script src="./admin.js?v=fuzhou-menu"></script>
+    <script src="./admin.js?v=category-tags"></script>
   </body>
 </html>

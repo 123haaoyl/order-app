@@ -17,6 +17,7 @@ const CUSTOM_MENU_KEY = "order-custom-menu-items";
 const DELETED_MENU_KEY = "order-deleted-menu-ids";
 const TABLE_OVERRIDES_KEY = "order-table-overrides";
 const MENU_VERSION_KEY = "order-menu-version";
+const CATEGORY_CONFIG_KEY = "order-category-config";
 
 const loginPanel = document.querySelector("#login-panel");
 const dashboard = document.querySelector("#dashboard");
@@ -52,6 +53,9 @@ const dishIconOptions = document.querySelector("#dish-icon-options");
 const specBuilder = document.querySelector("#spec-builder");
 const addSpecGroup = document.querySelector("#add-spec-group");
 const saveNewDish = document.querySelector("#save-new-dish");
+const categoryAdminList = document.querySelector("#category-admin-list");
+const newCategoryName = document.querySelector("#new-category-name");
+const addCategory = document.querySelector("#add-category");
 
 if (forceDemoMode) {
   const customerLink = document.querySelector('a[href="./index.html"]');
@@ -98,7 +102,9 @@ function makeDishId(name) {
 }
 
 function getMenuCategories() {
-  return [...new Set(menuItems.map((item) => item.category).filter(Boolean))];
+  const savedCategories = readStorageArray(CATEGORY_CONFIG_KEY).map((category) => String(category).trim()).filter(Boolean);
+  const defaultCategories = menuItems.map((item) => item.category).filter(Boolean);
+  return [...new Set([...savedCategories, ...defaultCategories])];
 }
 
 function escapeHtml(value) {
@@ -149,7 +155,7 @@ function writeStorageArray(key, value) {
 function syncMenuVersion() {
   const menuVersion = String(window.SHOP_CONFIG?.menuVersion || "");
   if (!menuVersion || localStorage.getItem(MENU_VERSION_KEY) === menuVersion) return;
-  [LOCAL_ORDERS_KEY, MENU_OVERRIDES_KEY, CUSTOM_MENU_KEY, DELETED_MENU_KEY].forEach((key) => {
+  [LOCAL_ORDERS_KEY, MENU_OVERRIDES_KEY, CUSTOM_MENU_KEY, DELETED_MENU_KEY, CATEGORY_CONFIG_KEY].forEach((key) => {
     localStorage.removeItem(key);
   });
   localStorage.setItem(MENU_VERSION_KEY, menuVersion);
@@ -185,6 +191,7 @@ function applyLocalDataOverrides() {
     item.category = String(override.category || item.category);
     item.price = Math.max(0, Number(override.price ?? item.price));
     item.stock = Math.max(0, Number(override.stock ?? item.stock));
+    item.tag = String(override.tag ?? item.tag ?? "");
   });
 
   const tableOverrides = readStorageObject(TABLE_OVERRIDES_KEY);
@@ -202,6 +209,66 @@ function saveMenuOverride(dishId, patch) {
   overrides[dishId] = { ...current, ...patch };
   writeStorageObject(MENU_OVERRIDES_KEY, overrides);
   Object.assign(menuItems.find((item) => item.id === dishId) || {}, overrides[dishId]);
+}
+
+function saveCategoryConfig(categories) {
+  const nextCategories = [...new Set(categories.map((category) => String(category).trim()).filter(Boolean))];
+  writeStorageArray(CATEGORY_CONFIG_KEY, nextCategories);
+}
+
+function ensureCategory(category) {
+  const name = String(category || "").trim();
+  if (!name) return;
+  const categories = getMenuCategories();
+  if (!categories.includes(name)) {
+    saveCategoryConfig([...categories, name]);
+  }
+}
+
+function renameCategory(oldName, newName) {
+  const source = String(oldName || "").trim();
+  const target = String(newName || "").trim();
+  if (!source || !target) {
+    renderCategoryAdmin();
+    return;
+  }
+
+  const categories = getMenuCategories().map((category) => (category === source ? target : category));
+  saveCategoryConfig(categories);
+  menuItems
+    .filter((item) => item.category === source)
+    .forEach((item) => saveMenuOverride(item.id, { category: target }));
+  renderStaticModules();
+  showToast("分类已更新，顾客端刷新后生效");
+}
+
+function addMenuCategory() {
+  const name = newCategoryName.value.trim();
+  if (!name) {
+    showToast("请填写分类名称");
+    return;
+  }
+  if (getMenuCategories().includes(name)) {
+    showToast("分类已存在");
+    return;
+  }
+  saveCategoryConfig([...getMenuCategories(), name]);
+  newCategoryName.value = "";
+  renderStaticModules();
+  showToast("分类已新增");
+}
+
+function deleteMenuCategory(category) {
+  const name = String(category || "").trim();
+  if (!name) return;
+  const usedCount = menuItems.filter((item) => item.category === name).length;
+  if (usedCount > 0) {
+    showToast(`该分类下还有 ${usedCount} 个菜品，请先调整菜品分类`);
+    return;
+  }
+  saveCategoryConfig(getMenuCategories().filter((item) => item !== name));
+  renderStaticModules();
+  showToast("分类已删除");
 }
 
 function saveTableOverride(tableId, patch) {
@@ -339,8 +406,8 @@ function saveCustomDish(dish) {
   customItems.push(dish);
   writeStorageArray(CUSTOM_MENU_KEY, customItems);
   menuItems.push(dish);
-  renderMenuAdmin();
-  renderNewDishCategories();
+  ensureCategory(dish.category);
+  renderStaticModules();
 }
 
 function deleteDish(dishId) {
@@ -363,8 +430,7 @@ function deleteDish(dishId) {
 
   const index = menuItems.findIndex((item) => item.id === dishId);
   if (index >= 0) menuItems.splice(index, 1);
-  renderMenuAdmin();
-  renderNewDishCategories();
+  renderStaticModules();
   showToast("菜品已删除，顾客端刷新后生效");
 }
 
@@ -624,6 +690,7 @@ function renderMenuAdmin() {
     <div class="admin-table-row head">
       <span>菜品</span>
       <span>分类</span>
+      <span>标签</span>
       <span>价格</span>
       <span>库存</span>
       <span>状态</span>
@@ -635,6 +702,7 @@ function renderMenuAdmin() {
           <div class="admin-table-row editable-row" data-dish-id="${escapeHtml(item.id)}">
             <span>${escapeHtml(item.image)} ${escapeHtml(item.name)}</span>
             <input data-menu-field="category" type="text" value="${escapeHtml(item.category)}" aria-label="${escapeHtml(item.name)} 分类" />
+            <input data-menu-field="tag" type="text" value="${escapeHtml(item.tag || "")}" placeholder="如 招牌、创新" aria-label="${escapeHtml(item.name)} 标签" />
             <input data-menu-field="price" type="number" min="0" step="1" value="${Number(item.price || 0)}" aria-label="${escapeHtml(item.name)} 价格" />
             <input data-menu-field="stock" type="number" min="0" step="1" value="${Number(item.stock || 0)}" aria-label="${escapeHtml(item.name)} 库存" />
             <select data-menu-field="isActive" aria-label="${escapeHtml(item.name)} 上架状态">
@@ -649,6 +717,23 @@ function renderMenuAdmin() {
       )
       .join("")}
   `;
+}
+
+function renderCategoryAdmin() {
+  if (!categoryAdminList) return;
+  const categories = getMenuCategories();
+  categoryAdminList.innerHTML = categories
+    .map((category) => {
+      const usedCount = menuItems.filter((item) => item.category === category).length;
+      return `
+        <div class="category-admin-row" data-category="${escapeHtml(category)}">
+          <input data-category-name type="text" value="${escapeHtml(category)}" aria-label="${escapeHtml(category)} 分类名称" />
+          <span>${usedCount} 个菜品</span>
+          <button class="danger-button" data-delete-category="${escapeHtml(category)}" type="button" ${usedCount > 0 ? "disabled" : ""}>删除</button>
+        </div>
+      `;
+    })
+    .join("");
 }
 
 function renderTables() {
@@ -681,8 +766,10 @@ function renderTables() {
 }
 
 function renderStaticModules() {
+  renderCategoryAdmin();
   renderMenuAdmin();
   renderTables();
+  renderNewDishCategories();
 }
 
 async function signIn() {
@@ -844,11 +931,14 @@ document.querySelector("#menu-admin-list").addEventListener("change", (event) =>
     patch[field.dataset.menuField] = Math.max(0, Number(field.value || 0));
   } else if (field.dataset.menuField === "isActive") {
     patch.isActive = field.value === "true";
+  } else if (field.dataset.menuField === "category") {
+    patch.category = field.value.trim() || dish.category;
+    ensureCategory(patch.category);
   } else {
-    patch[field.dataset.menuField] = field.value.trim() || dish[field.dataset.menuField];
+    patch[field.dataset.menuField] = field.value.trim();
   }
   saveMenuOverride(dishId, patch);
-  renderMenuAdmin();
+  renderStaticModules();
   showToast("菜品信息已保存，顾客端刷新后生效");
 });
 
@@ -856,6 +946,26 @@ document.querySelector("#menu-admin-list").addEventListener("click", (event) => 
   const deleteButton = event.target.closest("[data-delete-dish]");
   if (!deleteButton) return;
   deleteDish(deleteButton.dataset.deleteDish);
+});
+
+addCategory?.addEventListener("click", addMenuCategory);
+newCategoryName?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    addMenuCategory();
+  }
+});
+
+categoryAdminList?.addEventListener("change", (event) => {
+  const input = event.target.closest("[data-category-name]");
+  if (!input) return;
+  const row = input.closest("[data-category]");
+  renameCategory(row?.dataset.category, input.value);
+});
+
+categoryAdminList?.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete-category]");
+  if (!deleteButton) return;
+  deleteMenuCategory(deleteButton.dataset.deleteCategory);
 });
 
 document.querySelector("#table-admin-list").addEventListener("change", (event) => {

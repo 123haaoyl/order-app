@@ -907,7 +907,7 @@ select:focus {
 .compact-row,
 .admin-table-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) repeat(5, minmax(86px, 0.6fr));
+  grid-template-columns: minmax(0, 1.3fr) minmax(110px, 0.7fr) minmax(100px, 0.6fr) repeat(4, minmax(86px, 0.55fr));
   gap: 10px;
   align-items: center;
   border-bottom: 1px solid var(--line);
@@ -926,6 +926,46 @@ select:focus {
 
 .admin-table-row span {
   overflow-wrap: anywhere;
+}
+
+.category-admin-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  margin-bottom: 16px;
+  padding: 14px;
+}
+
+.category-add-controls {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.category-admin-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.category-admin-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.category-admin-row span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .editable-row input,
@@ -1239,6 +1279,9 @@ select:focus {
   .dish-form-grid,
   .menu-list,
   .stats-grid,
+  .category-admin-list,
+  .category-add-controls,
+  .category-admin-row,
   .settings-grid,
   .table-grid {
     grid-template-columns: 1fr;

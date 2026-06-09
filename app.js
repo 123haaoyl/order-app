@@ -55,12 +55,13 @@ const CUSTOM_MENU_KEY = "order-custom-menu-items";
 const DELETED_MENU_KEY = "order-deleted-menu-ids";
 const TABLE_OVERRIDES_KEY = "order-table-overrides";
 const MENU_VERSION_KEY = "order-menu-version";
+const CATEGORY_CONFIG_KEY = "order-category-config";
 syncMenuVersion();
 applyLocalOverrides();
 let cart = loadCart();
 
 const forceDemoMode = new URLSearchParams(window.location.search).get("demo") === "1";
-const categories = ["全部", ...new Set(menuItems.map((item) => item.category))];
+let categories = getMenuCategories();
 const supabaseClient = createSupabaseClient();
 
 function createSupabaseClient() {
@@ -116,13 +117,27 @@ function readStorageArray(key) {
   }
 }
 
+function writeStorageArray(key, value) {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
 function syncMenuVersion() {
   const menuVersion = String(shopConfig.menuVersion || "");
   if (!menuVersion || localStorage.getItem(MENU_VERSION_KEY) === menuVersion) return;
-  [CART_STORAGE_KEY, CUSTOMER_ORDERS_KEY, MENU_OVERRIDES_KEY, CUSTOM_MENU_KEY, DELETED_MENU_KEY].forEach((key) => {
+  [CART_STORAGE_KEY, CUSTOMER_ORDERS_KEY, MENU_OVERRIDES_KEY, CUSTOM_MENU_KEY, DELETED_MENU_KEY, CATEGORY_CONFIG_KEY].forEach((key) => {
     localStorage.removeItem(key);
   });
   localStorage.setItem(MENU_VERSION_KEY, menuVersion);
+}
+
+function getDefaultCategories() {
+  return [...new Set(menuItems.map((item) => item.category).filter(Boolean))];
+}
+
+function getMenuCategories() {
+  const savedCategories = readStorageArray(CATEGORY_CONFIG_KEY).map((category) => String(category).trim()).filter(Boolean);
+  const allCategories = savedCategories.length ? savedCategories : getDefaultCategories();
+  return ["全部", ...new Set(allCategories)];
 }
 
 function applyLocalOverrides() {
@@ -153,6 +168,7 @@ function applyLocalOverrides() {
     item.category = String(override.category || item.category);
     item.price = Math.max(0, Number(override.price ?? item.price));
     item.stock = Math.max(0, Number(override.stock ?? item.stock));
+    item.tag = String(override.tag ?? item.tag ?? "");
     item.isActive = override.isActive !== false;
   });
 
