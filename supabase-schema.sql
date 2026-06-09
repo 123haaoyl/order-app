@@ -68,12 +68,13 @@ $$;
 
 grant usage on schema public to anon, authenticated;
 grant insert on public.orders to anon, authenticated;
-grant select, update on public.orders to authenticated;
+grant select, update, delete on public.orders to authenticated;
 grant execute on function public.is_order_admin() to anon, authenticated;
 
 drop policy if exists "Anyone can create orders" on public.orders;
 drop policy if exists "Admins can read orders" on public.orders;
 drop policy if exists "Admins can update orders" on public.orders;
+drop policy if exists "Admins can delete orders" on public.orders;
 
 create policy "Anyone can create orders"
 on public.orders
@@ -97,6 +98,12 @@ for update
 to authenticated
 using (public.is_order_admin())
 with check (public.is_order_admin());
+
+create policy "Admins can delete orders"
+on public.orders
+for delete
+to authenticated
+using (public.is_order_admin());
 
 -- 把 your@email.com 换成你的后台登录邮箱，再运行这一行。
 insert into public.app_admins (email)

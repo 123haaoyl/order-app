@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>点餐小程序</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <script src="./theme.js?v=fuzhou-menu"></script>
+    <link rel="stylesheet" href="./styles.css?v=fuzhou-menu" />
   </head>
   <body>
     <div class="app-shell">
@@ -15,8 +16,11 @@
         </div>
         <div class="admin-top-actions">
           <a class="ghost-link" href="#order-center">订单</a>
-          <a class="ghost-link" href="#member-center">会员</a>
           <a class="ghost-link" href="./admin.html">后台</a>
+          <button class="ghost-button theme-toggle" data-theme-toggle type="button" aria-label="切换深色样式">
+            <span class="theme-toggle-icon" aria-hidden="true"></span>
+            <span data-theme-label>深色</span>
+          </button>
           <button class="ghost-button" id="reset-cart" type="button">清空</button>
         </div>
       </header>
@@ -36,10 +40,14 @@
             <button class="active" data-order-type="dinein" type="button">到店</button>
             <button data-order-type="takeaway" type="button">外卖</button>
           </div>
-          <div class="table-bind">
+          <div class="table-bind" id="table-bound-field">
             <span>桌号</span>
             <strong id="bound-table">未选择</strong>
           </div>
+          <label class="table-picker" id="table-picker-field">
+            <span>选择桌号</span>
+            <select id="table-select"></select>
+          </label>
         </div>
       </section>
 
@@ -59,13 +67,6 @@
               <span>桌号</span>
               <input id="table-input" type="text" placeholder="A08" maxlength="12" />
             </label>
-          </div>
-
-          <div class="quick-row">
-            <button class="chip-button active" data-quick-filter="all" type="button">全部</button>
-            <button class="chip-button" data-quick-filter="hot" type="button">热门排行</button>
-            <button class="chip-button" data-quick-filter="recommend" type="button">猜你喜欢</button>
-            <button class="chip-button" data-quick-filter="available" type="button">有库存</button>
           </div>
 
           <div id="menu-list" class="menu-list"></div>
@@ -98,11 +99,6 @@
           </div>
 
           <label class="note-box">
-            <span>优惠券</span>
-            <select id="coupon-select"></select>
-          </label>
-
-          <label class="note-box">
             <span>备注</span>
             <textarea id="note-input" rows="3" placeholder="少辣、不要香菜、打包..."></textarea>
           </label>
@@ -129,10 +125,6 @@
               <span>配送费</span>
               <strong id="delivery-total">¥0</strong>
             </div>
-            <div>
-              <span>优惠抵扣</span>
-              <strong id="discount-total">¥0</strong>
-            </div>
             <div class="payable-row">
               <span>实付</span>
               <strong id="cart-total">¥0</strong>
@@ -155,31 +147,18 @@
           <div id="local-orders-list" class="orders-list"></div>
         </section>
 
-        <section class="admin-panel" id="member-center">
-          <div class="admin-toolbar">
-            <div>
-              <p class="eyebrow">会员中心</p>
-              <h2>积分与储值</h2>
-            </div>
-            <span id="member-phone" class="dish-tag">未登录</span>
-          </div>
-          <div class="stats-grid">
-            <div class="stat-card">
-              <span>积分</span>
-              <strong id="member-points">0</strong>
-            </div>
-            <div class="stat-card">
-              <span>余额</span>
-              <strong id="member-balance">¥0</strong>
-            </div>
-            <div class="stat-card">
-              <span>消费次数</span>
-              <strong id="member-orders">0</strong>
-            </div>
-          </div>
-        </section>
       </section>
     </div>
+
+    <div class="mobile-cart-bar" id="mobile-cart-bar" hidden>
+      <div>
+        <span id="mobile-cart-count">0 件</span>
+        <strong id="mobile-cart-total">¥0</strong>
+      </div>
+      <button id="mobile-checkout" type="button">去结算</button>
+    </div>
+
+    <div class="app-toast" id="app-toast" role="status" aria-live="polite" hidden></div>
 
     <dialog id="dish-dialog" class="order-dialog">
       <div class="dialog-header">
@@ -202,17 +181,9 @@
       <button id="print-order" class="primary-button" type="button">打印订单</button>
     </dialog>
 
-    <dialog id="coupon-dialog" class="order-dialog">
-      <div class="dialog-header">
-        <h2>今日优惠</h2>
-        <button id="close-coupon-dialog" class="icon-button" type="button" aria-label="关闭">×</button>
-      </div>
-      <div id="coupon-dialog-list" class="coupon-dialog-list"></div>
-    </dialog>
-
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./data.js"></script>
+    <script src="./data.js?v=fuzhou-menu"></script>
     <script src="./supabase-config.js"></script>
-    <script src="./app.js"></script>
+    <script src="./app.js?v=fuzhou-menu"></script>
   </body>
 </html>

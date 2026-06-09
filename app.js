@@ -1,7 +1,6 @@
 const menuItems = Array.isArray(window.MENU_ITEMS) ? window.MENU_ITEMS : [];
+const tables = Array.isArray(window.TABLES) ? window.TABLES : [];
 const shopConfig = window.SHOP_CONFIG || {};
-const coupons = Array.isArray(window.COUPONS) ? window.COUPONS : [];
-const memberProfile = window.MEMBER_PROFILE || {};
 
 const categoryList = document.querySelector("#category-list");
 const menuList = document.querySelector("#menu-list");
@@ -11,15 +10,17 @@ const cartTotal = document.querySelector("#cart-total");
 const subtotalTotal = document.querySelector("#subtotal-total");
 const packingTotal = document.querySelector("#packing-total");
 const deliveryTotal = document.querySelector("#delivery-total");
-const discountTotal = document.querySelector("#discount-total");
 const searchInput = document.querySelector("#search-input");
+const searchRow = document.querySelector(".search-row");
 const tableInput = document.querySelector("#table-input");
+const tableSelect = document.querySelector("#table-select");
 const tableField = document.querySelector("#table-field");
+const tablePickerField = document.querySelector("#table-picker-field");
+const tableBoundField = document.querySelector("#table-bound-field");
 const noteInput = document.querySelector("#note-input");
 const addressInput = document.querySelector("#address-input");
 const deliveryTime = document.querySelector("#delivery-time");
 const paymentMethod = document.querySelector("#payment-method");
-const couponSelect = document.querySelector("#coupon-select");
 const submitOrder = document.querySelector("#submit-order");
 const resetCart = document.querySelector("#reset-cart");
 const orderTypeTabs = document.querySelector("#order-type-tabs");
@@ -34,24 +35,37 @@ const dishDialogTag = document.querySelector("#dish-dialog-tag");
 const dishDialogTitle = document.querySelector("#dish-dialog-title");
 const dishDialogBody = document.querySelector("#dish-dialog-body");
 const addConfiguredDish = document.querySelector("#add-configured-dish");
-const couponDialog = document.querySelector("#coupon-dialog");
-const couponDialogList = document.querySelector("#coupon-dialog-list");
-const closeCouponDialog = document.querySelector("#close-coupon-dialog");
 const localOrdersList = document.querySelector("#local-orders-list");
 const refreshLocalOrders = document.querySelector("#refresh-local-orders");
+const mobileCartBar = document.querySelector("#mobile-cart-bar");
+const mobileCartCount = document.querySelector("#mobile-cart-count");
+const mobileCartTotal = document.querySelector("#mobile-cart-total");
+const mobileCheckout = document.querySelector("#mobile-checkout");
+const appToast = document.querySelector("#app-toast");
 
 let activeCategory = "全部";
-let quickFilter = "all";
 let orderType = "dinein";
-let selectedCouponId = "auto";
 let selectedDish = null;
 let selectedSpecIndexes = {};
+let toastTimer = null;
+const CART_STORAGE_KEY = "order-cart";
+const CUSTOMER_ORDERS_KEY = "customer-orders";
+const MENU_OVERRIDES_KEY = "order-menu-overrides";
+const CUSTOM_MENU_KEY = "order-custom-menu-items";
+const DELETED_MENU_KEY = "order-deleted-menu-ids";
+const TABLE_OVERRIDES_KEY = "order-table-overrides";
+const MENU_VERSION_KEY = "order-menu-version";
+syncMenuVersion();
+applyLocalOverrides();
 let cart = loadCart();
 
+const forceDemoMode = new URLSearchParams(window.location.search).get("demo") === "1";
 const categories = ["全部", ...new Set(menuItems.map((item) => item.category))];
 const supabaseClient = createSupabaseClient();
 
 function createSupabaseClient() {
+  if (forceDemoMode) return null;
+
   const config = window.ORDER_APP_SUPABASE || {};
   const hasConfig =
     config.url &&
@@ -63,6 +77,12 @@ function createSupabaseClient() {
   }
 
   return window.supabase.createClient(config.url, config.anonKey);
+}
+
+function configureDemoLinks() {
+  if (!forceDemoMode) return;
+  const adminLink = document.querySelector('a[href="./admin.html"]');
+  if (adminLink) adminLink.href = "./admin.html?demo=1";
 }
 
 function currency(value) {
@@ -78,9 +98,97 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function readStorageObject(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "{}");
+    return value && typeof value === "object" ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+function readStorageArray(key) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch {
+    return [];
+  }
+}
+
+function syncMenuVersion() {
+  const menuVersion = String(shopConfig.menuVersion || "");
+  if (!menuVersion || localStorage.getItem(MENU_VERSION_KEY) === menuVersion) return;
+  [CART_STORAGE_KEY, CUSTOMER_ORDERS_KEY, MENU_OVERRIDES_KEY, CUSTOM_MENU_KEY, DELETED_MENU_KEY].forEach((key) => {
+    localStorage.removeItem(key);
+  });
+  localStorage.setItem(MENU_VERSION_KEY, menuVersion);
+}
+
+function applyLocalOverrides() {
+  readStorageArray(CUSTOM_MENU_KEY).forEach((dish) => {
+    if (!dish?.id) return;
+    const existing = menuItems.find((item) => item.id === dish.id);
+    if (existing) {
+      Object.assign(existing, dish);
+    } else {
+      menuItems.push(dish);
+    }
+  });
+
+  const deletedIds = new Set(readStorageArray(DELETED_MENU_KEY));
+  for (let index = menuItems.length - 1; index >= 0; index -= 1) {
+    if (deletedIds.has(menuItems[index].id)) {
+      menuItems.splice(index, 1);
+    }
+  }
+
+  const menuOverrides = readStorageObject(MENU_OVERRIDES_KEY);
+  menuItems.forEach((item) => {
+    const override = menuOverrides[item.id];
+    if (!override) {
+      item.isActive = item.isActive !== false;
+      return;
+    }
+    item.category = String(override.category || item.category);
+    item.price = Math.max(0, Number(override.price ?? item.price));
+    item.stock = Math.max(0, Number(override.stock ?? item.stock));
+    item.isActive = override.isActive !== false;
+  });
+
+  const tableOverrides = readStorageObject(TABLE_OVERRIDES_KEY);
+  tables.forEach((table) => {
+    const override = tableOverrides[table.id];
+    table.status = override?.status || table.status || "idle";
+    table.area = override?.area || table.area || "";
+    table.seats = Math.max(1, Number(override?.seats ?? table.seats ?? 1));
+  });
+}
+
+function showToast(message) {
+  if (!appToast) return;
+  window.clearTimeout(toastTimer);
+  appToast.textContent = message;
+  appToast.hidden = false;
+  toastTimer = window.setTimeout(() => {
+    appToast.hidden = true;
+  }, 2200);
+}
+
+function bumpCartBadge() {
+  cartCount.classList.remove("is-bumping");
+  void cartCount.offsetWidth;
+  cartCount.classList.add("is-bumping");
+}
+
+function getCartEntryStock(entry) {
+  const dish = menuItems.find((item) => item.id === entry?.dishId);
+  return Math.max(0, Number(dish?.stock || 0));
+}
+
 function loadCart() {
   try {
-    const saved = JSON.parse(localStorage.getItem("order-cart")) || {};
+    const saved = JSON.parse(localStorage.getItem(CART_STORAGE_KEY)) || {};
     return Object.fromEntries(
       Object.entries(saved)
         .map(([key, value]) => {
@@ -88,6 +196,8 @@ function loadCart() {
             const dish = menuItems.find((item) => item.id === key);
             return dish ? [buildCartKey(dish, defaultSpecs(dish)), buildCartEntry(dish, defaultSpecs(dish), value)] : null;
           }
+          const dish = menuItems.find((item) => item.id === value?.dishId && item.isActive !== false);
+          if (!dish) return null;
           return [key, value];
         })
         .filter(Boolean),
@@ -98,12 +208,12 @@ function loadCart() {
 }
 
 function saveCart() {
-  localStorage.setItem("order-cart", JSON.stringify(cart));
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
 }
 
 function loadCustomerOrders() {
   try {
-    return JSON.parse(localStorage.getItem("customer-orders")) || [];
+    return JSON.parse(localStorage.getItem(CUSTOMER_ORDERS_KEY)) || [];
   } catch {
     return [];
   }
@@ -112,7 +222,54 @@ function loadCustomerOrders() {
 function saveCustomerOrder(order) {
   const orders = loadCustomerOrders();
   orders.unshift(order);
-  localStorage.setItem("customer-orders", JSON.stringify(orders.slice(0, 20)));
+  localStorage.setItem(CUSTOMER_ORDERS_KEY, JSON.stringify(orders.slice(0, 20)));
+}
+
+function getMonthlyOrderCounts() {
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  return loadCustomerOrders().reduce((counts, order) => {
+    if (!String(order.created_at || "").startsWith(currentMonth)) return counts;
+    (order.items || []).forEach((item) => {
+      const quantity = Number(item.quantity || 0);
+      if (!quantity) return;
+      if (item.id) counts[item.id] = (counts[item.id] || 0) + quantity;
+      if (item.name) counts[item.name] = (counts[item.name] || 0) + quantity;
+    });
+    return counts;
+  }, {});
+}
+
+function getBaseMonthlySales(item) {
+  const configuredSales = Number(item.monthlySales ?? item.monthly_sales ?? item.sales ?? 0);
+  if (configuredSales > 0) return configuredSales;
+  const rank = Number(item.rank || 10);
+  const stock = Number(item.stock || 0);
+  return Math.max(18, 240 - rank * 14 + Math.min(stock, 80));
+}
+
+function getMonthlySales(item, monthlyCounts) {
+  return getBaseMonthlySales(item) + Number(monthlyCounts[item.id] || monthlyCounts[item.name] || 0);
+}
+
+function makeLocalOrderId() {
+  const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
+  return `LOCAL-${stamp}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+}
+
+function formatDisplayTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value || "未知时间");
+  return date.toLocaleString("zh-CN", { hour12: false });
+}
+
+function prepareStoredOrder(payload, source) {
+  return {
+    ...payload,
+    id: payload.id || makeLocalOrderId(),
+    source,
+    created_at: payload.created_at || new Date().toISOString(),
+    status_label: payload.status_label || "待接单",
+  };
 }
 
 function defaultSpecs(dish) {
@@ -164,20 +321,39 @@ function setQuantity(key, quantity) {
   if (quantity <= 0) {
     delete cart[key];
   } else if (cart[key]) {
-    cart[key].quantity = quantity;
+    const stock = getCartEntryStock(cart[key]);
+    if (stock <= 0) {
+      showToast(`${cart[key].name} 已售罄`);
+      delete cart[key];
+    } else {
+      const nextQuantity = Math.min(quantity, stock);
+      if (nextQuantity < quantity) showToast(`${cart[key].name} 库存只剩 ${stock} 份`);
+      cart[key].quantity = nextQuantity;
+    }
   }
   saveCart();
   render();
 }
 
 function addDishToCart(dish, specs) {
+  const stock = Math.max(0, Number(dish.stock || 0));
+  if (stock <= 0) {
+    showToast(`${dish.name} 已售罄`);
+    return;
+  }
   const key = buildCartKey(dish, specs);
   if (!cart[key]) {
     cart[key] = buildCartEntry(dish, specs, 0);
   }
+  if (cart[key].quantity >= stock) {
+    showToast(`${dish.name} 库存只剩 ${stock} 份`);
+    return;
+  }
   cart[key].quantity += 1;
   saveCart();
   render();
+  bumpCartBadge();
+  showToast(`${dish.name} 已加入购物车`);
 }
 
 function getCartItems() {
@@ -201,38 +377,12 @@ function getDeliveryFee() {
   return orderType === "takeaway" ? Number(shopConfig.deliveryFee || 0) : 0;
 }
 
-function getAvailableCoupons(subtotal) {
-  return coupons.filter((coupon) => subtotal >= Number(coupon.threshold || 0));
-}
-
-function getCouponDiscount(coupon, subtotal) {
-  if (!coupon) return 0;
-  if (subtotal < Number(coupon.threshold || 0)) return 0;
-  if (coupon.type === "discount") {
-    return Math.round(subtotal * (1 - Number(coupon.value || 1)));
-  }
-  return Number(coupon.value || 0);
-}
-
-function getSelectedCoupon(subtotal) {
-  const available = getAvailableCoupons(subtotal);
-  if (selectedCouponId === "none") return null;
-  if (selectedCouponId !== "auto") {
-    return available.find((coupon) => coupon.id === selectedCouponId) || null;
-  }
-  return available
-    .map((coupon) => ({ coupon, discount: getCouponDiscount(coupon, subtotal) }))
-    .sort((a, b) => b.discount - a.discount)[0]?.coupon || null;
-}
-
 function getTotals() {
   const subtotal = getSubtotal();
   const packingFee = getPackingFee();
   const deliveryFee = getDeliveryFee();
-  const coupon = getSelectedCoupon(subtotal);
-  const discount = getCouponDiscount(coupon, subtotal);
-  const payable = Math.max(0, subtotal + packingFee + deliveryFee - discount);
-  return { subtotal, packingFee, deliveryFee, coupon, discount, payable };
+  const payable = Math.max(0, subtotal + packingFee + deliveryFee);
+  return { subtotal, packingFee, deliveryFee, payable };
 }
 
 function renderShop() {
@@ -242,7 +392,6 @@ function renderShop() {
   document.querySelector("#business-hours").textContent = `营业 ${shopConfig.businessHours || "全天"}`;
   document.querySelector("#shop-address").textContent = shopConfig.address || "";
   document.querySelector("#shop-phone").textContent = shopConfig.phone || "";
-  renderMember();
 }
 
 function bindTableFromUrl() {
@@ -251,32 +400,47 @@ function bindTableFromUrl() {
   if (table) {
     tableInput.value = table;
   }
-  document.querySelector("#bound-table").textContent = tableInput.value.trim() || "未选择";
+  updateBoundTable();
 }
 
-function renderMember() {
-  document.querySelector("#member-phone").textContent = memberProfile.phone || "未登录";
-  document.querySelector("#member-points").textContent = Number(memberProfile.points || 0);
-  document.querySelector("#member-balance").textContent = currency(memberProfile.balance || 0);
-  document.querySelector("#member-orders").textContent = loadCustomerOrders().length;
+function getTableStatusLabel(status) {
+  return status === "occupied" ? "占用" : "空闲";
+}
+
+function updateBoundTable() {
+  const tableValue = tableInput.value.trim();
+  document.querySelector("#bound-table").textContent = tableValue || "未选择";
+  if (tableSelect && tableSelect.value !== tableValue) {
+    const hasOption = [...tableSelect.options].some((option) => option.value === tableValue);
+    tableSelect.value = hasOption ? tableValue : "";
+  }
+}
+
+function renderTableSelect() {
+  if (!tableSelect) return;
+  const selectedValue = tableInput.value.trim();
+  tableSelect.innerHTML = [
+    `<option value="">请选择桌号</option>`,
+    ...tables.map((table) => {
+      const disabled = table.status === "occupied" ? "disabled" : "";
+      const selected = selectedValue === table.id ? "selected" : "";
+      return `<option value="${escapeHtml(table.id)}" ${disabled} ${selected}>${escapeHtml(table.id)} · ${escapeHtml(table.area)} · ${Number(table.seats || 0)} 人 · ${getTableStatusLabel(table.status)}</option>`;
+    }),
+  ].join("");
 }
 
 function getFilteredItems() {
   const keyword = searchInput.value.trim().toLowerCase();
   return menuItems
     .filter((item) => {
+      const isActive = item.isActive !== false;
       const inCategory = activeCategory === "全部" || item.category === activeCategory;
       const inKeyword =
         !keyword ||
         item.name.toLowerCase().includes(keyword) ||
         item.description.toLowerCase().includes(keyword) ||
         item.category.toLowerCase().includes(keyword);
-      const inQuick =
-        quickFilter === "all" ||
-        (quickFilter === "hot" && Number(item.rank || 99) <= 5) ||
-        (quickFilter === "recommend" && ["招牌", "推荐", "热卖", "人气"].includes(item.tag)) ||
-        (quickFilter === "available" && Number(item.stock || 0) > 0);
-      return inCategory && inKeyword && inQuick;
+      return isActive && inCategory && inKeyword;
     })
     .sort((a, b) => Number(a.rank || 99) - Number(b.rank || 99));
 }
@@ -295,6 +459,7 @@ function renderCategories() {
 
 function renderMenu() {
   const items = getFilteredItems();
+  const monthlyCounts = getMonthlyOrderCounts();
   if (!items.length) {
     menuList.innerHTML = `<div class="empty-state">没有找到相关菜品</div>`;
     return;
@@ -314,7 +479,7 @@ function renderMenu() {
             <p>${escapeHtml(item.description)}</p>
             <div class="dish-meta">
               <span>库存 ${Number(item.stock || 0)}</span>
-              <span>热度 #${Number(item.rank || 0)}</span>
+              <span>月售 ${getMonthlySales(item, monthlyCounts)}</span>
             </div>
             <div class="dish-bottom">
               <strong>${currency(item.price)}</strong>
@@ -329,20 +494,6 @@ function renderMenu() {
     .join("");
 }
 
-function renderCoupons() {
-  const subtotal = getSubtotal();
-  const available = getAvailableCoupons(subtotal);
-  couponSelect.innerHTML = [
-    `<option value="auto">自动最优</option>`,
-    `<option value="none">不使用</option>`,
-    ...coupons.map((coupon) => {
-      const disabled = available.some((item) => item.id === coupon.id) ? "" : "disabled";
-      return `<option value="${escapeHtml(coupon.id)}" ${disabled}>${escapeHtml(coupon.name)} · 满 ${coupon.threshold}</option>`;
-    }),
-  ].join("");
-  couponSelect.value = selectedCouponId;
-}
-
 function renderCart() {
   const items = getCartItems();
   const totalCount = getTotalCount();
@@ -352,15 +503,18 @@ function renderCart() {
   subtotalTotal.textContent = currency(totals.subtotal);
   packingTotal.textContent = currency(totals.packingFee);
   deliveryTotal.textContent = currency(totals.deliveryFee);
-  discountTotal.textContent = totals.discount ? `-${currency(totals.discount)}` : currency(0);
   cartTotal.textContent = currency(totals.payable);
   submitOrder.disabled = totalCount === 0;
   takeawayFields.hidden = orderType !== "takeaway";
-  tableField.hidden = orderType !== "dinein";
+  if (mobileCartBar && mobileCartCount && mobileCartTotal) {
+    mobileCartBar.hidden = totalCount === 0;
+    mobileCartCount.textContent = `${totalCount} 件已选`;
+    mobileCartTotal.textContent = currency(totals.payable);
+    document.body.classList.toggle("has-mobile-cart", totalCount > 0);
+  }
 
   if (!items.length) {
     cartList.innerHTML = `<div class="empty-state">还没有选择菜品</div>`;
-    renderCoupons();
     return;
   }
 
@@ -385,7 +539,6 @@ function renderCart() {
       `,
     )
     .join("");
-  renderCoupons();
 }
 
 function renderOrderType() {
@@ -394,9 +547,21 @@ function renderOrderType() {
   });
 }
 
+function renderTableFields() {
+  const showTableFields = orderType === "dinein";
+  if (!showTableFields) {
+    tableInput.value = "";
+    if (tableSelect) tableSelect.value = "";
+  }
+  tableField.hidden = !showTableFields;
+  if (tablePickerField) tablePickerField.hidden = !showTableFields;
+  if (tableBoundField) tableBoundField.hidden = !showTableFields;
+  searchRow?.classList.toggle("table-hidden", !showTableFields);
+  updateBoundTable();
+}
+
 function renderLocalOrders() {
   const orders = loadCustomerOrders();
-  renderMember();
   if (!orders.length) {
     localOrdersList.innerHTML = `<div class="empty-state">暂无订单</div>`;
     return;
@@ -408,10 +573,10 @@ function renderLocalOrders() {
         <article class="order-card">
           <div class="order-card-header">
             <div>
-              <p class="eyebrow">${escapeHtml(order.created_at)}</p>
+              <p class="eyebrow">${escapeHtml(formatDisplayTime(order.created_at))}</p>
               <h3>${escapeHtml(order.order_type === "takeaway" ? "外卖订单" : `桌号 ${order.table_no || "未填"}`)}</h3>
             </div>
-            <span class="dish-tag">${escapeHtml(order.status_label || "待接单")}</span>
+            <span class="dish-tag">${escapeHtml(order.source === "local" ? "本地演示" : order.status_label || "待接单")}</span>
           </div>
           <div class="order-lines">
             ${(order.items || [])
@@ -437,17 +602,18 @@ function renderLocalOrders() {
 
 function render() {
   renderCategories();
+  renderTableSelect();
   renderMenu();
   renderOrderType();
+  renderTableFields();
   renderCart();
-  bindTableFromUrl();
 }
 
 function createOrderText(payload = createOrderPayload(false)) {
   const lines = [
     `类型：${payload.order_type === "takeaway" ? "外卖" : "到店"}`,
     `桌号：${payload.table_no || "未填写"}`,
-    `时间：${new Date().toLocaleString("zh-CN")}`,
+    `时间：${formatDisplayTime(payload.created_at)}`,
     "",
     "菜品：",
     ...payload.items.map((item) => `- ${item.name}（${item.spec_text}）× ${item.quantity} = ${currency(item.subtotal)}`),
@@ -455,7 +621,6 @@ function createOrderText(payload = createOrderPayload(false)) {
     `菜品总价：${currency(payload.subtotal)}`,
     `打包费：${currency(payload.packing_fee)}`,
     `配送费：${currency(payload.delivery_fee)}`,
-    `优惠：-${currency(payload.discount)}`,
     `实付：${currency(payload.payable)}`,
     `支付方式：${payload.payment_method}`,
     `备注：${payload.note || "无"}`,
@@ -465,6 +630,7 @@ function createOrderText(payload = createOrderPayload(false)) {
 
 function createOrderPayload(includeText = true) {
   const totals = getTotals();
+  const createdAt = new Date().toISOString();
   const items = getCartItems().map((item) => ({
     id: item.dishId,
     name: item.name,
@@ -482,29 +648,37 @@ function createOrderPayload(includeText = true) {
     delivery_address: orderType === "takeaway" ? addressInput.value.trim() : "",
     delivery_time: orderType === "takeaway" ? deliveryTime.value : "",
     payment_method: paymentMethod.value,
-    coupon_id: totals.coupon?.id || "",
-    coupon_name: totals.coupon?.name || "",
     note: noteInput.value.trim(),
     items,
     subtotal: totals.subtotal,
     packing_fee: totals.packingFee,
     delivery_fee: totals.deliveryFee,
-    discount: totals.discount,
     payable: totals.payable,
     total: totals.payable,
     status: "new",
     status_label: "待接单",
-    created_at: new Date().toLocaleString("zh-CN"),
+    created_at: createdAt,
   };
 
   return includeText ? { ...payload, order_text: createOrderText(payload) } : payload;
+}
+
+function getOrderValidationMessage() {
+  const totals = getTotals();
+  if (!getCartItems().length) return "请先选择菜品。";
+  if (orderType === "dinein" && !tableInput.value.trim()) return "堂食订单需要填写桌号。";
+  if (orderType === "takeaway" && !addressInput.value.trim()) return "外卖订单需要填写收货地址。";
+  if (orderType === "takeaway" && totals.subtotal < Number(shopConfig.minOrderAmount || 0)) {
+    return `外卖起送金额为 ${currency(shopConfig.minOrderAmount)}，还差 ${currency(Number(shopConfig.minOrderAmount || 0) - totals.subtotal)}。`;
+  }
+  return "";
 }
 
 async function submitOrderToBackend() {
   const payload = createOrderPayload();
 
   if (!supabaseClient) {
-    throw new Error("后台还没有配置 Supabase anon public key");
+    return prepareStoredOrder(payload, "local");
   }
 
   const extendedPayload = {
@@ -513,14 +687,11 @@ async function submitOrderToBackend() {
     delivery_address: payload.delivery_address,
     delivery_time: payload.delivery_time,
     payment_method: payload.payment_method,
-    coupon_id: payload.coupon_id,
-    coupon_name: payload.coupon_name,
     note: payload.note,
     items: payload.items,
     subtotal: payload.subtotal,
     packing_fee: payload.packing_fee,
     delivery_fee: payload.delivery_fee,
-    discount: payload.discount,
     payable: payload.payable,
     total: payload.total,
     status: payload.status,
@@ -528,7 +699,7 @@ async function submitOrderToBackend() {
   };
 
   const { error } = await supabaseClient.from("orders").insert(extendedPayload);
-  if (!error) return payload;
+  if (!error) return prepareStoredOrder(payload, "supabase");
 
   const legacyPayload = {
     table_no: payload.table_no,
@@ -543,7 +714,7 @@ async function submitOrderToBackend() {
     throw new Error(legacyResult.error.message || error.message || "订单提交失败");
   }
 
-  return payload;
+  return prepareStoredOrder(payload, "supabase");
 }
 
 function openDishDialog(dishId) {
@@ -590,37 +761,11 @@ function renderDishDialog() {
   `;
 }
 
-function showCouponDialog() {
-  if (sessionStorage.getItem("coupon-dialog-seen")) return;
-  sessionStorage.setItem("coupon-dialog-seen", "1");
-  couponDialogList.innerHTML = coupons
-    .map(
-      (coupon) => `
-        <div class="coupon-card">
-          <strong>${escapeHtml(coupon.name)}</strong>
-          <span>满 ${coupon.threshold} 可用 · 有效期 ${escapeHtml(coupon.validUntil)}</span>
-        </div>
-      `,
-    )
-    .join("");
-  couponDialog.showModal();
-}
-
 document.addEventListener("click", (event) => {
   const categoryButton = event.target.closest("[data-category]");
   if (categoryButton) {
     activeCategory = categoryButton.dataset.category;
     render();
-    return;
-  }
-
-  const quickButton = event.target.closest("[data-quick-filter]");
-  if (quickButton) {
-    quickFilter = quickButton.dataset.quickFilter;
-    document.querySelectorAll("[data-quick-filter]").forEach((button) => {
-      button.classList.toggle("active", button === quickButton);
-    });
-    renderMenu();
     return;
   }
 
@@ -665,20 +810,29 @@ addConfiguredDish.addEventListener("click", () => {
 
 searchInput.addEventListener("input", renderMenu);
 tableInput.addEventListener("input", () => {
-  document.querySelector("#bound-table").textContent = tableInput.value.trim() || "未选择";
+  updateBoundTable();
 });
-couponSelect.addEventListener("change", () => {
-  selectedCouponId = couponSelect.value;
-  renderCart();
+tableSelect?.addEventListener("change", () => {
+  tableInput.value = tableSelect.value;
+  updateBoundTable();
 });
 
 resetCart.addEventListener("click", () => {
   cart = {};
   saveCart();
   render();
+  showToast("购物车已清空");
 });
 
 submitOrder.addEventListener("click", async () => {
+  const validationMessage = getOrderValidationMessage();
+  if (validationMessage) {
+    orderOutput.textContent = validationMessage;
+    dialog.showModal();
+    showToast(validationMessage);
+    return;
+  }
+
   const previousText = submitOrder.textContent;
   submitOrder.disabled = true;
   submitOrder.textContent = "提交中...";
@@ -686,13 +840,20 @@ submitOrder.addEventListener("click", async () => {
   try {
     const payload = await submitOrderToBackend();
     saveCustomerOrder(payload);
-    orderOutput.textContent = `订单已提交到后台\n\n${payload.order_text}`;
+    const successMessage = payload.source === "local"
+      ? "演示订单已保存在本机，可到后台查看"
+      : "订单已提交到后台";
+    orderOutput.textContent = `${successMessage}\n\n${payload.order_text}`;
     cart = {};
     saveCart();
     render();
     renderLocalOrders();
+    showToast(successMessage);
   } catch (error) {
-    orderOutput.textContent = `${error.message}\n\n下面是本地订单内容，请先不要关闭：\n\n${createOrderText()}`;
+    const fallbackPayload = prepareStoredOrder(createOrderPayload(), "local");
+    saveCustomerOrder(fallbackPayload);
+    renderLocalOrders();
+    orderOutput.textContent = `${error.message}\n\n后台提交失败，订单已先保存在本机订单中心。购物车已保留，后台恢复后可以再次提交。\n\n${fallbackPayload.order_text}`;
   } finally {
     submitOrder.textContent = previousText;
     render();
@@ -703,11 +864,16 @@ submitOrder.addEventListener("click", async () => {
 closeDialog.addEventListener("click", () => dialog.close());
 printOrder.addEventListener("click", () => window.print());
 closeDishDialog.addEventListener("click", () => dishDialog.close());
-closeCouponDialog.addEventListener("click", () => couponDialog.close());
-refreshLocalOrders.addEventListener("click", renderLocalOrders);
+refreshLocalOrders.addEventListener("click", () => {
+  renderLocalOrders();
+  showToast("订单已刷新");
+});
+mobileCheckout?.addEventListener("click", () => {
+  document.querySelector(".cart-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
 
+configureDemoLinks();
 renderShop();
 bindTableFromUrl();
 render();
 renderLocalOrders();
-setTimeout(showCouponDialog, 500);

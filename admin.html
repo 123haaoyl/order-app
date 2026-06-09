@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>商家管理后台</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <script src="./theme.js?v=fuzhou-menu"></script>
+    <link rel="stylesheet" href="./styles.css?v=fuzhou-menu" />
   </head>
   <body>
     <div class="app-shell admin-shell">
@@ -15,6 +16,10 @@
         </div>
         <div class="admin-top-actions">
           <a class="ghost-link" href="./index.html">客户端</a>
+          <button class="ghost-button theme-toggle" data-theme-toggle type="button" aria-label="切换深色样式">
+            <span class="theme-toggle-icon" aria-hidden="true"></span>
+            <span data-theme-label>深色</span>
+          </button>
           <button class="ghost-button" id="sign-out" type="button" hidden>退出</button>
         </div>
       </header>
@@ -42,36 +47,40 @@
             <button data-admin-tab="orders" type="button">订单管理</button>
             <button data-admin-tab="menu" type="button">菜品管理</button>
             <button data-admin-tab="tables" type="button">桌台管理</button>
-            <button data-admin-tab="marketing" type="button">营销活动</button>
-            <button data-admin-tab="members" type="button">会员管理</button>
-            <button data-admin-tab="settings" type="button">店铺设置</button>
             <button data-admin-tab="printing" type="button">打印配置</button>
           </nav>
 
           <section class="admin-tab-panel active" data-admin-panel="overview">
+            <section class="admin-panel compact-panel">
+              <div class="admin-toolbar">
+                <div>
+                  <p class="eyebrow">经营日期</p>
+                  <h2>老板看板</h2>
+                </div>
+                <div class="admin-controls">
+                  <input id="overview-date" type="date" aria-label="看板日期" />
+                </div>
+              </div>
+            </section>
             <div class="stats-grid">
               <div class="stat-card">
-                <span>今日订单</span>
+                <span>订单数</span>
                 <strong id="today-count">0</strong>
               </div>
               <div class="stat-card">
-                <span>今日金额</span>
+                <span>营业额</span>
                 <strong id="today-total">¥0</strong>
               </div>
               <div class="stat-card">
                 <span>待处理</span>
                 <strong id="new-count">0</strong>
               </div>
-              <div class="stat-card">
-                <span>优惠支出</span>
-                <strong id="discount-spend">¥0</strong>
-              </div>
             </div>
             <section class="admin-panel">
               <div class="admin-toolbar">
                 <div>
                   <p class="eyebrow">热销菜品</p>
-                  <h2>排行</h2>
+                  <h2>当日排行</h2>
                 </div>
               </div>
               <div id="hot-dish-list" class="compact-list"></div>
@@ -112,8 +121,7 @@
                   <h2>菜品管理</h2>
                 </div>
                 <div class="admin-controls">
-                  <button class="ghost-button" id="bulk-on" type="button">批量上架</button>
-                  <button class="ghost-button" id="bulk-off" type="button">批量下架</button>
+                  <button class="ghost-button" id="open-dish-form" type="button">新增菜品</button>
                 </div>
               </div>
               <div id="menu-admin-list" class="admin-table"></div>
@@ -129,46 +137,6 @@
                 </div>
               </div>
               <div id="table-admin-list" class="table-grid"></div>
-            </section>
-          </section>
-
-          <section class="admin-tab-panel" data-admin-panel="marketing">
-            <section class="admin-panel">
-              <div class="admin-toolbar">
-                <div>
-                  <p class="eyebrow">活动</p>
-                  <h2>优惠券与会员活动</h2>
-                </div>
-              </div>
-              <div id="coupon-admin-list" class="admin-table"></div>
-            </section>
-          </section>
-
-          <section class="admin-tab-panel" data-admin-panel="members">
-            <section class="admin-panel">
-              <div class="admin-toolbar">
-                <div>
-                  <p class="eyebrow">会员</p>
-                  <h2>会员管理</h2>
-                </div>
-              </div>
-              <div id="member-admin-list" class="admin-table"></div>
-            </section>
-          </section>
-
-          <section class="admin-tab-panel" data-admin-panel="settings">
-            <section class="admin-panel">
-              <div class="admin-toolbar">
-                <div>
-                  <p class="eyebrow">门店</p>
-                  <h2>店铺设置</h2>
-                </div>
-                <label class="switch-row">
-                  <input id="shop-open" type="checkbox" checked />
-                  <span>营业中</span>
-                </label>
-              </div>
-              <div id="shop-settings" class="settings-grid"></div>
             </section>
           </section>
 
@@ -203,9 +171,76 @@
       </main>
     </div>
 
+    <dialog id="dish-form-dialog" class="order-dialog wide-dialog">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">菜品资料</p>
+          <h2>新增菜品</h2>
+        </div>
+        <button id="close-dish-form" class="icon-button" type="button" aria-label="关闭">×</button>
+      </div>
+
+      <div class="dish-form-grid">
+        <label class="admin-field">
+          <span>菜品名称</span>
+          <input id="new-dish-name" type="text" placeholder="例如：番茄牛腩饭" />
+        </label>
+        <label class="admin-field">
+          <span>分类</span>
+          <select id="new-dish-category"></select>
+        </label>
+        <label class="admin-field" id="new-dish-custom-category-wrap" hidden>
+          <span>新分类名称</span>
+          <input id="new-dish-custom-category" type="text" placeholder="例如：套餐" />
+        </label>
+        <label class="admin-field">
+          <span>价格</span>
+          <input id="new-dish-price" type="number" min="0" step="1" value="28" />
+        </label>
+        <label class="admin-field">
+          <span>库存</span>
+          <input id="new-dish-stock" type="number" min="0" step="1" value="50" />
+        </label>
+        <label class="admin-field">
+          <span>标签</span>
+          <input id="new-dish-tag" type="text" placeholder="热卖、招牌、微辣" />
+        </label>
+        <label class="admin-field span-2">
+          <span>描述</span>
+          <input id="new-dish-description" type="text" placeholder="一句话介绍菜品口味和食材" />
+        </label>
+      </div>
+
+      <section class="form-section">
+        <div class="section-title-row">
+          <div>
+            <p class="eyebrow">缩略图</p>
+            <h3>选择 icon</h3>
+          </div>
+          <input id="new-dish-icon-custom" class="small-input" type="text" maxlength="4" placeholder="自定义" />
+        </div>
+        <div id="dish-icon-options" class="icon-grid"></div>
+      </section>
+
+      <section class="form-section">
+        <div class="section-title-row">
+          <div>
+            <p class="eyebrow">规格</p>
+            <h3>份量、辣度等可自行编辑</h3>
+          </div>
+          <button class="ghost-button" id="add-spec-group" type="button">添加规格组</button>
+        </div>
+        <div id="spec-builder" class="spec-builder"></div>
+      </section>
+
+      <button id="save-new-dish" class="primary-button" type="button">保存菜品</button>
+    </dialog>
+
+    <div class="app-toast" id="app-toast" role="status" aria-live="polite" hidden></div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="./data.js"></script>
+    <script src="./data.js?v=fuzhou-menu"></script>
     <script src="./supabase-config.js"></script>
-    <script src="./admin.js"></script>
+    <script src="./admin.js?v=fuzhou-menu"></script>
   </body>
 </html>
