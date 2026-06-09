@@ -58,6 +58,7 @@ const DELETED_MENU_KEY = "order-deleted-menu-ids";
 const TABLE_OVERRIDES_KEY = "order-table-overrides";
 const MENU_VERSION_KEY = "order-menu-version";
 const CATEGORY_CONFIG_KEY = "order-category-config";
+const currentMenuVersion = String(shopConfig.menuVersion || "");
 syncMenuVersion();
 applyLocalOverrides();
 let cart = loadCart();
@@ -132,6 +133,7 @@ async function loadCloudMenuState() {
     const response = await fetch("./api/menu");
     const result = await response.json().catch(() => ({}));
     if (!response.ok || !result.menu) return false;
+    if (result.menu.menuVersion && result.menu.menuVersion !== currentMenuVersion) return false;
     writeMenuStateToStorage(result.menu);
     applyLocalOverrides();
     categories = getMenuCategories();
@@ -142,7 +144,7 @@ async function loadCloudMenuState() {
 }
 
 function syncMenuVersion() {
-  const menuVersion = String(shopConfig.menuVersion || "");
+  const menuVersion = currentMenuVersion;
   if (!menuVersion || localStorage.getItem(MENU_VERSION_KEY) === menuVersion) return;
   [CART_STORAGE_KEY, CUSTOMER_ORDERS_KEY, MENU_OVERRIDES_KEY, CUSTOM_MENU_KEY, DELETED_MENU_KEY, CATEGORY_CONFIG_KEY].forEach((key) => {
     localStorage.removeItem(key);
@@ -156,8 +158,7 @@ function getDefaultCategories() {
 
 function getMenuCategories() {
   const savedCategories = readStorageArray(CATEGORY_CONFIG_KEY).map((category) => String(category).trim()).filter(Boolean);
-  const allCategories = savedCategories.length ? savedCategories : getDefaultCategories();
-  return ["全部", ...new Set(allCategories)];
+  return ["全部", ...new Set([...savedCategories, ...getDefaultCategories()])];
 }
 
 function applyLocalOverrides() {

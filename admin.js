@@ -12,6 +12,7 @@ const TABLE_OVERRIDES_KEY = "order-table-overrides";
 const MENU_VERSION_KEY = "order-menu-version";
 const CATEGORY_CONFIG_KEY = "order-category-config";
 const ADMIN_TOKEN_KEY = "order-admin-token";
+const currentMenuVersion = String(window.SHOP_CONFIG?.menuVersion || "");
 
 const loginPanel = document.querySelector("#login-panel");
 const dashboard = document.querySelector("#dashboard");
@@ -199,6 +200,7 @@ function writeMenuStateToStorage(menu = {}) {
 function getPersistableMenuState() {
   const storedMenu = readMenuStateFromStorage();
   return {
+    menuVersion: currentMenuVersion,
     overrides: storedMenu.overrides,
     customItems: menuItems.filter((item) => item.isCustom),
     deletedIds: storedMenu.deletedIds,
@@ -223,6 +225,7 @@ async function loadCloudMenuState() {
   try {
     const result = await requestJson("./api/menu");
     if (result.menu) {
+      if (result.menu.menuVersion && result.menu.menuVersion !== currentMenuVersion) return;
       const hasCloudMenu =
         Object.keys(result.menu.overrides || {}).length ||
         (result.menu.customItems || []).length ||
@@ -238,7 +241,7 @@ async function loadCloudMenuState() {
 }
 
 function syncMenuVersion() {
-  const menuVersion = String(window.SHOP_CONFIG?.menuVersion || "");
+  const menuVersion = currentMenuVersion;
   if (!menuVersion || localStorage.getItem(MENU_VERSION_KEY) === menuVersion) return;
   [LOCAL_ORDERS_KEY, MENU_OVERRIDES_KEY, CUSTOM_MENU_KEY, DELETED_MENU_KEY, CATEGORY_CONFIG_KEY].forEach((key) => {
     localStorage.removeItem(key);

@@ -3,6 +3,7 @@ import { ensureSchema, getErrorMessage, getSql, isAdminRequest, sendJson } from 
 const MENU_CONFIG_KEY = "menu";
 
 function normalizeMenuState(value = {}) {
+  const menuVersion = String(value.menuVersion || "");
   const overrides = value.overrides && typeof value.overrides === "object" && !Array.isArray(value.overrides)
     ? value.overrides
     : {};
@@ -14,7 +15,7 @@ function normalizeMenuState(value = {}) {
     ? value.categories.map((item) => String(item || "").trim()).filter(Boolean)
     : [];
 
-  return { overrides, customItems, deletedIds, categories };
+  return { menuVersion, overrides, customItems, deletedIds, categories };
 }
 
 export default async function handler(req, res) {
