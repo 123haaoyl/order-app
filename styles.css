@@ -928,6 +928,24 @@ select:focus {
   overflow-wrap: anywhere;
 }
 
+#menu-admin-list {
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+#menu-admin-list .admin-table-row {
+  grid-template-columns: minmax(240px, 1.65fr) minmax(132px, 0.78fr) minmax(118px, 0.66fr) 92px 92px 104px 88px;
+  min-width: 930px;
+}
+
+#menu-admin-list .admin-table-row.head span:first-child {
+  padding-left: 34px;
+}
+
+#menu-admin-list .admin-table-row.editable-row {
+  min-height: 58px;
+}
+
 .category-admin-panel {
   display: grid;
   gap: 12px;
@@ -982,8 +1000,7 @@ select:focus {
 }
 
 .bulk-check,
-.page-size-control,
-.menu-select-cell {
+.page-size-control {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -991,8 +1008,27 @@ select:focus {
   font-weight: 800;
 }
 
+.menu-select-cell {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-weight: 800;
+}
+
+.menu-select-cell input {
+  justify-self: center;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
 .menu-select-cell span {
-  overflow-wrap: anywhere;
+  min-width: 0;
+  line-height: 1.35;
+  overflow-wrap: break-word;
+  word-break: keep-all;
 }
 
 .page-size-control {
@@ -1139,15 +1175,32 @@ select:focus {
   flex-wrap: wrap;
 }
 
+.decider-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  width: min(360px, 100%);
+  flex: 0 0 auto;
+}
+
 .decider-action-button,
 .decider-result-button {
-  min-width: 118px;
+  display: inline-flex;
+  align-items: center;
   min-height: 42px;
   justify-content: center;
 }
 
+.decider-actions .decider-action-button {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding-inline: 16px;
+}
+
 .decider-result-button {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 128px;
 }
 
 .decider-chip-list {
@@ -1219,7 +1272,11 @@ select:focus {
 }
 
 .candidate-add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   align-self: end;
+  width: 100%;
   min-height: 34px;
   margin-top: 4px;
 }
@@ -1625,6 +1682,27 @@ select:focus {
   .admin-top-actions > *,
   .menu-bulk-toolbar > * {
     flex: 1;
+  }
+
+  .admin-controls.decider-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-controls.decider-actions > * {
+    flex: initial;
+  }
+
+  #menu-admin-list .admin-table-row {
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+  }
+
+  #menu-admin-list .admin-table-row.head {
+    display: none;
+  }
+
+  #menu-admin-list .admin-table-row.head span:first-child {
+    padding-left: 0;
   }
 
   .page-size-control {
