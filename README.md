@@ -95,9 +95,10 @@ admin.html?demo=1
    - `DATABASE_URL`：Neon 数据库连接字符串。
    - `ADMIN_EMAIL`：后台登录邮箱。
    - `ADMIN_PASSWORD`：后台登录密码。
+   - `ADMIN_USERS`：可选，多后台账号，格式为 `账号:密码`，多个账号用英文逗号、分号或换行分隔，例如 `wangjie:123456`。
 5. 重新部署 Vercel。
 
-部署后，顾客端提交订单会写入 Neon 的 `orders` 表。后台页面 `admin.html` 使用 `ADMIN_EMAIL` 和 `ADMIN_PASSWORD` 登录后读取、流转、删除云端订单；菜品新增、删除、改价、上下架等配置会写入 Neon 的 `app_config` 表。
+部署后，顾客端提交订单会写入 Neon 的 `orders` 表。后台页面 `admin.html` 使用 `ADMIN_EMAIL` / `ADMIN_PASSWORD` 或 `ADMIN_USERS` 里的账号登录后读取、流转、删除云端订单；菜品新增、删除、改价、上下架等配置会写入 Neon 的 `app_config` 表。
 
 本地演示仍然可用：
 

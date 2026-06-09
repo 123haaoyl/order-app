@@ -28,17 +28,60 @@ export function getSql() {
   return sqlClient;
 }
 
-export function getAdminToken() {
-  const email = process.env.ADMIN_EMAIL || "";
-  const password = process.env.ADMIN_PASSWORD || "";
-  if (!email || !password) return "";
-  return createHash("sha256").update(`${email.toLowerCase()}:${password}`).digest("hex");
+function normalizeAdminName(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function parseAdminUsers(value = "") {
+  return String(value || "")
+    .split(/[\n,;]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const separatorIndex = entry.indexOf(":");
+      if (separatorIndex <= 0) return null;
+      const username = entry.slice(0, separatorIndex).trim();
+      const password = entry.slice(separatorIndex + 1);
+      if (!username || !password) return null;
+      return { username, password };
+    })
+    .filter(Boolean);
+}
+
+export function getAdminAccounts() {
+  const accounts = [];
+  const legacyEmail = process.env.ADMIN_EMAIL || "";
+  const legacyPassword = process.env.ADMIN_PASSWORD || "";
+  if (legacyEmail && legacyPassword) {
+    accounts.push({ username: legacyEmail, password: legacyPassword });
+  }
+
+  accounts.push(...parseAdminUsers(process.env.ADMIN_USERS));
+
+  const seen = new Set();
+  return accounts.filter((account) => {
+    const normalizedName = normalizeAdminName(account.username);
+    if (!normalizedName || seen.has(normalizedName)) return false;
+    seen.add(normalizedName);
+    return true;
+  });
+}
+
+export function getAdminToken(username, password) {
+  if (!username || !password) return "";
+  return createHash("sha256").update(`${normalizeAdminName(username)}:${password}`).digest("hex");
+}
+
+export function findAdminAccount(username, password) {
+  const normalizedName = normalizeAdminName(username);
+  return getAdminAccounts().find(
+    (account) => normalizeAdminName(account.username) === normalizedName && String(account.password) === String(password || ""),
+  );
 }
 
 export function isAdminRequest(req) {
-  const expectedToken = getAdminToken();
   const token = String(req.headers?.["x-admin-token"] || req.headers?.["X-Admin-Token"] || "");
-  return Boolean(expectedToken && token === expectedToken);
+  return Boolean(token && getAdminAccounts().some((account) => getAdminToken(account.username, account.password) === token));
 }
 
 export async function ensureSchema() {

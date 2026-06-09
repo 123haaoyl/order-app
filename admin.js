@@ -1306,7 +1306,7 @@ function renderStaticModules() {
 async function signIn() {
   if (!useCloudApi) {
     if (!emailInput.value.trim() || !passwordInput.value) {
-      showAuthMessage("请输入邮箱和密码");
+      showAuthMessage("请输入账号和密码");
       return;
     }
     setSessionView(true);
