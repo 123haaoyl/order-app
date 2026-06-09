@@ -1,4 +1,4 @@
-import { ensureSchema, getErrorMessage, getSql, normalizeOrder, sendJson } from "./_db.js";
+import { ensureSchema, getErrorMessage, getSql, isAdminRequest, normalizeOrder, sendJson } from "./_db.js";
 
 function makeOrderId() {
   const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
@@ -24,6 +24,10 @@ function validateOrder(payload) {
 
 export default async function handler(req, res) {
   try {
+    if (req.method !== "POST" && !isAdminRequest(req)) {
+      return sendJson(res, 401, { error: "请先登录后台" });
+    }
+
     await ensureSchema();
     const sql = getSql();
 

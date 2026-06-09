@@ -9,6 +9,7 @@ const DELETED_MENU_KEY = "order-deleted-menu-ids";
 const TABLE_OVERRIDES_KEY = "order-table-overrides";
 const MENU_VERSION_KEY = "order-menu-version";
 const CATEGORY_CONFIG_KEY = "order-category-config";
+const ADMIN_TOKEN_KEY = "order-admin-token";
 
 const loginPanel = document.querySelector("#login-panel");
 const dashboard = document.querySelector("#dashboard");
@@ -504,16 +505,23 @@ function getFriendlyErrorMessage(error, fallback = "操作失败，请稍后重�
 }
 
 async function requestJson(url, options = {}) {
+  const adminToken = localStorage.getItem(ADMIN_TOKEN_KEY) || "";
   const response = await fetch(url, {
     ...options,
     headers: {
       "content-type": "application/json",
+      ...(adminToken ? { "x-admin-token": adminToken } : {}),
       ...(options.headers || {}),
     },
   });
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(result.error || "云端服务请求失败");
+    if (response.status === 401) {
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+    }
+    const error = new Error(result.error || "云端服务请求失败");
+    error.status = response.status;
+    throw error;
   }
   return result;
 }
@@ -716,6 +724,10 @@ async function loadOrders() {
     latestOrders = result.orders || [];
     renderOrders();
   } catch (error) {
+    if (error.status === 401) {
+      setSessionView(false);
+      showAuthMessage("登录已失效，请重新进入后台");
+    }
     ordersList.innerHTML = `<div class="empty-state">${escapeHtml(getFriendlyErrorMessage(error, "订单加载失败，请检查网络后重试。"))}</div>`;
   }
 }
@@ -826,13 +838,16 @@ async function signIn() {
   showAuthMessage("");
 
   try {
-    await requestJson("./api/admin/login", {
+    const result = await requestJson("./api/admin/login", {
       method: "POST",
       body: JSON.stringify({
         email: emailInput.value.trim(),
         password: passwordInput.value,
       }),
     });
+    if (result.token) {
+      localStorage.setItem(ADMIN_TOKEN_KEY, result.token);
+    }
 
     setSessionView(true);
     renderStaticModules();
@@ -846,6 +861,7 @@ async function signIn() {
 }
 
 async function signOut() {
+  localStorage.removeItem(ADMIN_TOKEN_KEY);
   setSessionView(false);
   passwordInput.value = "";
   showAuthMessage("已退出后台");
@@ -1113,6 +1129,12 @@ async function boot() {
     setSessionView(false);
     latestOrders = getDemoOrders();
     showAuthMessage("演示模式：输入任意邮箱和密码后进入后台");
+    return;
+  }
+
+  if (localStorage.getItem(ADMIN_TOKEN_KEY)) {
+    setSessionView(true);
+    await loadOrders();
     return;
   }
 

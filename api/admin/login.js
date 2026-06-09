@@ -1,4 +1,4 @@
-import { sendJson } from "../_db.js";
+import { getAdminToken, sendJson } from "../_db.js";
 
 function getAdminEmail() {
   return process.env.ADMIN_EMAIL || "";
@@ -24,5 +24,5 @@ export default async function handler(req, res) {
     return sendJson(res, 401, { error: "邮箱或密码不正确，请重新输入。" });
   }
 
-  return sendJson(res, 200, { ok: true, email });
+  return sendJson(res, 200, { ok: true, email, token: getAdminToken() });
 }

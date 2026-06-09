@@ -1,4 +1,5 @@
 import { neon } from "@neondatabase/serverless";
+import { createHash } from "node:crypto";
 
 let sqlClient;
 let readyPromise;
@@ -25,6 +26,19 @@ export function getSql() {
     sqlClient = neon(process.env.DATABASE_URL);
   }
   return sqlClient;
+}
+
+export function getAdminToken() {
+  const email = process.env.ADMIN_EMAIL || "";
+  const password = process.env.ADMIN_PASSWORD || "";
+  if (!email || !password) return "";
+  return createHash("sha256").update(`${email.toLowerCase()}:${password}`).digest("hex");
+}
+
+export function isAdminRequest(req) {
+  const expectedToken = getAdminToken();
+  const token = String(req.headers?.["x-admin-token"] || req.headers?.["X-Admin-Token"] || "");
+  return Boolean(expectedToken && token === expectedToken);
 }
 
 export async function ensureSchema() {
