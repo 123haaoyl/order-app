@@ -1,0 +1,29 @@
+{
+  "pages": [
+    "pages/menu/menu",
+    "pages/orders/orders"
+  ],
+  "window": {
+    "navigationBarTitleText": "烟台山闽味小馆",
+    "navigationBarBackgroundColor": "#c7442e",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f6f4ef"
+  },
+  "tabBar": {
+    "color": "#706c63",
+    "selectedColor": "#c7442e",
+    "backgroundColor": "#fffdf8",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/menu/menu",
+        "text": "点餐"
+      },
+      {
+        "pagePath": "pages/orders/orders",
+        "text": "订单"
+      }
+    ]
+  },
+  "sitemapLocation": "sitemap.json"
+}

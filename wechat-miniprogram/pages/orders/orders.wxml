@@ -1,0 +1,36 @@
+<view class="page">
+  <view class="page-head">
+    <view>
+      <text class="eyebrow">订单中心</text>
+      <view class="title">我的订单</view>
+    </view>
+    <button class="ghost-button" size="mini" bindtap="reloadOrders">刷新</button>
+  </view>
+
+  <view wx:if="{{orders.length}}" class="order-list">
+    <view wx:for="{{orders}}" wx:key="id" class="order-card">
+      <view class="order-head">
+        <view>
+          <text class="order-id">#{{item.id || 'LOCAL'}}</text>
+          <view class="order-target">{{item.order_type === 'takeaway' ? item.delivery_address : '桌号 ' + (item.table_no || '未填写')}}</view>
+        </view>
+        <text class="status">{{item.status_label || '待接单'}}</text>
+      </view>
+      <view class="lines">
+        <view wx:for="{{item.items}}" wx:key="id" wx:for-item="dish" class="line">
+          <text>{{dish.name}} × {{dish.quantity}}</text>
+          <text>¥{{dish.subtotal}}</text>
+        </view>
+      </view>
+      <view class="order-foot">
+        <text>{{item.created_at}}</text>
+        <text class="total">¥{{item.payable || item.total}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:else class="empty">
+    <text>还没有订单</text>
+    <button class="primary-button" bindtap="goMenu">去点餐</button>
+  </view>
+</view>
