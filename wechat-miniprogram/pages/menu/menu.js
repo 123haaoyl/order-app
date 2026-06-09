@@ -2,7 +2,6 @@ const { shopConfig, tables, menuItems } = require("../../utils/data");
 const {
   buildCartEntry,
   buildCartKey,
-  createOrderPayload,
   defaultSpecs,
   getCartItems,
   getTotals,
@@ -20,6 +19,7 @@ Page({
     page: 1,
     pageSize: 8,
     totalPages: 1,
+    filteredCount: 0,
     pageItems: [],
     tableOptions: [],
     tableNo: "",
@@ -32,6 +32,7 @@ Page({
     cartItems: [],
     totals: { count: 0, subtotal: 0, packingFee: 0, deliveryFee: 0, payable: 0 },
     specVisible: false,
+    cartPanelVisible: false,
     selectedDish: null,
     selectedSpecIndexes: {},
     selectedPrice: 0
@@ -71,7 +72,7 @@ Page({
     const totalPages = Math.max(1, Math.ceil(items.length / this.data.pageSize));
     const page = Math.min(Math.max(1, this.data.page), totalPages);
     const start = (page - 1) * this.data.pageSize;
-    this.setData({ page, totalPages, pageItems: items.slice(start, start + this.data.pageSize) });
+    this.setData({ page, totalPages, filteredCount: items.length, pageItems: items.slice(start, start + this.data.pageSize) });
   },
 
   refreshCart() {
@@ -181,58 +182,24 @@ Page({
     this.setData({ cart }, () => this.refreshCart());
   },
 
-  submitOrder() {
+  openCartPanel() {
+    if (!this.data.cartItems.length) return;
+    this.setData({ cartPanelVisible: true });
+  },
+
+  closeCartPanel() {
+    this.setData({ cartPanelVisible: false });
+  },
+
+  clearCart() {
+    this.setData({ cart: {}, cartPanelVisible: false }, () => this.refreshCart());
+  },
+
+  goCheckout() {
     if (!this.data.totals.count) {
       wx.showToast({ title: "请先选择菜品", icon: "none" });
       return;
     }
-    if (this.data.orderType === "dinein" && !this.data.tableNo) {
-      wx.showToast({ title: "请选择桌号", icon: "none" });
-      return;
-    }
-    if (this.data.orderType === "takeaway" && !this.data.address.trim()) {
-      wx.showToast({ title: "请填写地址", icon: "none" });
-      return;
-    }
-    const payload = createOrderPayload({
-      cart: this.data.cart,
-      orderType: this.data.orderType,
-      tableNo: this.data.tableNo,
-      address: this.data.address,
-      deliveryTime: this.data.deliveryTime,
-      paymentMethod: this.data.paymentMethod,
-      note: this.data.note
-    });
-    this.submitToBackend(payload);
-  },
-
-  submitToBackend(payload) {
-    const apiBaseUrl = app.globalData.apiBaseUrl;
-    if (!apiBaseUrl) {
-      this.saveLocalOrder({ ...payload, id: `WX-${Date.now()}`, source: "local" });
-      return;
-    }
-    wx.request({
-      url: `${apiBaseUrl.replace(/\/$/, "")}/api/orders`,
-      method: "POST",
-      data: payload,
-      success: (res) => {
-        const order = res.statusCode >= 200 && res.statusCode < 300 ? (res.data.order || payload) : payload;
-        this.saveLocalOrder({ ...order, source: res.statusCode >= 200 && res.statusCode < 300 ? "cloud" : "local" });
-      },
-      fail: () => this.saveLocalOrder({ ...payload, id: `WX-${Date.now()}`, source: "local" })
-    });
-  },
-
-  saveLocalOrder(order) {
-    const orders = wx.getStorageSync(app.globalData.orderStorageKey) || [];
-    wx.setStorageSync(app.globalData.orderStorageKey, [{ ...order, created_at: order.created_at || new Date().toISOString() }, ...orders]);
-    wx.removeStorageSync(app.globalData.cartStorageKey);
-    this.setData({ cart: {} }, () => this.refreshCart());
-    wx.showModal({
-      title: "订单已提交",
-      content: order.source === "cloud" ? "订单已同步到后台" : "订单已保存在本机，配置云端后可同步后台",
-      showCancel: false
-    });
+    wx.navigateTo({ url: `/pages/checkout/checkout?type=${this.data.orderType}&table=${encodeURIComponent(this.data.tableNo)}` });
   }
 });

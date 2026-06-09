@@ -1,83 +1,97 @@
 <view class="page">
-  <view class="shop-card">
+  <view class="shop-head">
     <view>
-      <text class="eyebrow">扫码点餐</text>
       <view class="shop-title">{{shop.name}}</view>
       <view class="shop-subtitle">{{shop.subtitle}}</view>
     </view>
-    <view class="shop-meta">
-      <text>{{shop.businessHours}}</text>
-      <text>{{shop.deliveryRange}}</text>
+    <view class="shop-badge">月售热榜</view>
+  </view>
+
+  <view class="top-tools">
+    <view class="mode-tabs">
+      <button class="{{orderType === 'dinein' ? 'active' : ''}}" bindtap="setOrderType" data-type="dinein">到店</button>
+      <button class="{{orderType === 'takeaway' ? 'active' : ''}}" bindtap="setOrderType" data-type="takeaway">外卖</button>
+    </view>
+    <view class="search-box">
+      <input value="{{keyword}}" placeholder="搜索菜品" bindinput="inputKeyword" />
     </view>
   </view>
 
-  <view class="mode-row">
-    <button class="{{orderType === 'dinein' ? 'active' : ''}}" bindtap="setOrderType" data-type="dinein">到店</button>
-    <button class="{{orderType === 'takeaway' ? 'active' : ''}}" bindtap="setOrderType" data-type="takeaway">外卖</button>
-  </view>
+  <view class="menu-shell">
+    <scroll-view class="category-rail" scroll-y>
+      <view
+        wx:for="{{categories}}"
+        wx:key="*this"
+        class="category-item {{item === activeCategory ? 'active' : ''}}"
+        bindtap="setCategory"
+        data-category="{{item}}"
+      >
+        <text>{{item}}</text>
+      </view>
+    </scroll-view>
 
-  <view class="field-card">
-    <view wx:if="{{orderType === 'dinein'}}">
-      <text class="field-label">桌号</text>
-      <picker range="{{tableOptions}}" range-key="label" bindchange="pickTable">
-        <view class="picker-value">{{tableNo || '请选择桌号'}}</view>
-      </picker>
-    </view>
-    <view wx:else>
-      <text class="field-label">收货地址</text>
-      <input value="{{address}}" placeholder="请输入地址" bindinput="inputAddress" />
-      <text class="field-label">配送时间</text>
-      <input value="{{deliveryTime}}" placeholder="例如 18:30" bindinput="inputDeliveryTime" />
-    </view>
-  </view>
-
-  <view class="search-card">
-    <input value="{{keyword}}" placeholder="搜索菜名、分类、描述" bindinput="inputKeyword" />
-  </view>
-
-  <scroll-view class="category-scroll" scroll-x>
-    <view class="category-list">
-      <button wx:for="{{categories}}" wx:key="*this" class="{{item === activeCategory ? 'active' : ''}}" bindtap="setCategory" data-category="{{item}}">{{item}}</button>
-    </view>
-  </scroll-view>
-
-  <view class="dish-list">
-    <view wx:for="{{pageItems}}" wx:key="id" class="dish-card">
-      <view class="dish-icon">{{item.image || '🍽️'}}</view>
-      <view class="dish-main">
-        <view class="dish-head">
-          <text class="dish-name">{{item.name}}</text>
-          <text wx:if="{{item.tag}}" class="dish-tag">{{item.tag}}</text>
+    <scroll-view class="dish-scroll" scroll-y>
+      <view class="dish-section-head">
+        <view>
+          <view class="section-title">{{activeCategory}}</view>
+          <view class="section-subtitle">共 {{filteredCount}} 个菜品</view>
         </view>
-        <text class="dish-desc">{{item.description}}</text>
-        <view class="dish-meta">
-          <text>库存 {{item.stock}}</text>
-          <text>月售 {{item.monthlySales || 0}}</text>
-        </view>
-        <view class="dish-bottom">
-          <text class="price">¥{{item.price}}</text>
-          <button class="primary-button" size="mini" bindtap="openSpec" data-id="{{item.id}}" disabled="{{item.stock <= 0}}">{{item.stock <= 0 ? '售罄' : '选规格'}}</button>
+        <view class="sort-chip">按推荐</view>
+      </view>
+
+      <view class="dish-list">
+        <view wx:for="{{pageItems}}" wx:key="id" class="dish-card">
+          <view class="dish-icon">{{item.image || '🍽️'}}</view>
+          <view class="dish-main">
+            <view class="dish-name">{{item.name}}</view>
+            <view class="dish-desc">{{item.description}}</view>
+            <view class="dish-meta">
+              <text>月售 {{item.monthlySales || 0}}</text>
+              <text>库存 {{item.stock}}</text>
+            </view>
+            <view class="dish-bottom">
+              <view>
+                <text class="price">¥{{item.price}}</text>
+                <text wx:if="{{item.tag}}" class="dish-tag">{{item.tag}}</text>
+              </view>
+              <button class="add-button" bindtap="openSpec" data-id="{{item.id}}" disabled="{{item.stock <= 0}}">
+                {{item.stock <= 0 ? '售罄' : '选规格'}}
+              </button>
+            </view>
+          </view>
         </view>
       </view>
-    </view>
+
+      <view class="pager">
+        <button size="mini" bindtap="prevPage" disabled="{{page <= 1}}">上一页</button>
+        <text>{{page}} / {{totalPages}}</text>
+        <button size="mini" bindtap="nextPage" disabled="{{page >= totalPages}}">下一页</button>
+      </view>
+    </scroll-view>
   </view>
 
-  <view class="pager">
-    <button class="ghost-button" size="mini" bindtap="prevPage" disabled="{{page <= 1}}">上一页</button>
-    <text>第 {{page}} / {{totalPages}} 页</text>
-    <button class="ghost-button" size="mini" bindtap="nextPage" disabled="{{page >= totalPages}}">下一页</button>
+  <view class="cart-bar">
+    <view class="cart-bubble">
+      <text>🛒</text>
+      <view wx:if="{{totals.count}}" class="cart-count">{{totals.count}}</view>
+    </view>
+    <view class="cart-summary" bindtap="openCartPanel">
+      <view class="cart-price">¥{{totals.payable}}</view>
+      <view class="cart-tip">{{totals.count ? '已选 ' + totals.count + ' 件' : '未选购商品'}}</view>
+    </view>
+    <button class="checkout-button" bindtap="goCheckout" disabled="{{!totals.count}}">去结算</button>
   </view>
 
-  <view class="cart-card">
-    <view class="cart-title">
-      <text>购物车</text>
-      <text>{{totals.count}} 件</text>
-    </view>
-    <view wx:if="{{cartItems.length}}">
+  <view wx:if="{{cartPanelVisible}}" class="cart-mask" bindtap="closeCartPanel">
+    <view class="cart-panel" catchtap="noop">
+      <view class="cart-panel-head">
+        <text>购物车</text>
+        <button size="mini" bindtap="clearCart">清空</button>
+      </view>
       <view wx:for="{{cartItems}}" wx:key="key" class="cart-row">
         <view>
-          <text class="cart-name">{{item.image}} {{item.name}}</text>
-          <text class="cart-spec">{{item.specText}}</text>
+          <view class="cart-name">{{item.image}} {{item.name}}</view>
+          <view class="cart-spec">{{item.specText}}</view>
         </view>
         <view class="cart-actions">
           <button size="mini" data-key="{{item.key}}" bindtap="decreaseCart">-</button>
@@ -86,34 +100,35 @@
         </view>
       </view>
     </view>
-    <view wx:else class="empty">还没有选择菜品</view>
-    <view class="checkout">
-      <view>
-        <text class="muted">合计</text>
-        <text class="total">¥{{totals.payable}}</text>
-      </view>
-      <button class="primary-button" bindtap="submitOrder" disabled="{{!totals.count}}">提交订单</button>
-    </view>
   </view>
 
   <view wx:if="{{specVisible}}" class="modal-mask" bindtap="closeSpec">
     <view class="spec-modal" catchtap="noop">
       <view class="modal-head">
         <view>
-          <text class="eyebrow">{{selectedDish.category}}</text>
           <view class="modal-title">{{selectedDish.image}} {{selectedDish.name}}</view>
+          <view class="modal-subtitle">{{selectedDish.description}}</view>
         </view>
         <button size="mini" bindtap="closeSpec">×</button>
       </view>
       <view wx:for="{{selectedDish.specs}}" wx:key="name" wx:for-index="groupIndex" class="spec-group">
-        <text class="field-label">{{item.name}}</text>
+        <view class="field-label">{{item.name}}</view>
         <view class="spec-options">
-          <button wx:for="{{item.options}}" wx:key="label" wx:for-item="option" wx:for-index="optionIndex" class="{{selectedSpecIndexes[groupIndex] === optionIndex ? 'active' : ''}}" data-group="{{groupIndex}}" data-option="{{optionIndex}}" bindtap="selectSpec">
+          <button
+            wx:for="{{item.options}}"
+            wx:key="label"
+            wx:for-item="option"
+            wx:for-index="optionIndex"
+            class="{{selectedSpecIndexes[groupIndex] === optionIndex ? 'active' : ''}}"
+            data-group="{{groupIndex}}"
+            data-option="{{optionIndex}}"
+            bindtap="selectSpec"
+          >
             {{option.label}}{{option.priceDelta ? ' +' + option.priceDelta : ''}}
           </button>
         </view>
       </view>
-      <button class="primary-button add-configured" bindtap="addSelectedDish">加入购物车 · ¥{{selectedPrice}}</button>
+      <button class="add-configured" bindtap="addSelectedDish">加入购物车 · ¥{{selectedPrice}}</button>
     </view>
   </view>
 </view>

@@ -1,0 +1,78 @@
+<view class="page">
+  <view class="address-card">
+    <view class="mode-tabs">
+      <button class="{{orderType === 'dinein' ? 'active' : ''}}" bindtap="setOrderType" data-type="dinein">到店</button>
+      <button class="{{orderType === 'takeaway' ? 'active' : ''}}" bindtap="setOrderType" data-type="takeaway">外卖</button>
+    </view>
+
+    <view wx:if="{{orderType === 'dinein'}}" class="target-box">
+      <view>
+        <view class="target-title">桌号</view>
+        <view class="target-value">{{tableNo || '请选择桌号'}}</view>
+      </view>
+      <picker range="{{tableOptions}}" range-key="label" bindchange="pickTable">
+        <button size="mini" class="ghost-button">选择</button>
+      </picker>
+    </view>
+
+    <view wx:else class="target-box vertical">
+      <view>
+        <view class="target-title">收货地址</view>
+        <input value="{{address}}" placeholder="请输入收货地址" bindinput="inputAddress" />
+      </view>
+      <view>
+        <view class="target-title">配送时间</view>
+        <input value="{{deliveryTime}}" placeholder="立即送出 / 18:30" bindinput="inputDeliveryTime" />
+      </view>
+    </view>
+  </view>
+
+  <view class="order-card">
+    <view class="shop-title">{{shop.name}}</view>
+    <view class="goods-list">
+      <view wx:for="{{cartItems}}" wx:key="key" class="goods-row">
+        <view class="goods-icon">{{item.image || '🍽️'}}</view>
+        <view class="goods-main">
+          <view class="goods-name">{{item.name}}</view>
+          <view class="goods-spec">{{item.specText}}</view>
+          <view class="goods-count">x{{item.quantity}}</view>
+        </view>
+        <view class="goods-price">¥{{item.unitPrice * item.quantity}}</view>
+      </view>
+    </view>
+
+    <view class="fee-row">
+      <text>菜品小计</text>
+      <text>¥{{totals.subtotal}}</text>
+    </view>
+    <view wx:if="{{orderType === 'takeaway'}}" class="fee-row">
+      <text>打包费</text>
+      <text>¥{{totals.packingFee}}</text>
+    </view>
+    <view wx:if="{{orderType === 'takeaway'}}" class="fee-row">
+      <text>配送费</text>
+      <text>¥{{totals.deliveryFee}}</text>
+    </view>
+  </view>
+
+  <view class="remark-card">
+    <view class="remark-title">备注</view>
+    <textarea value="{{note}}" placeholder="口味、餐具、忌口等要求" bindinput="inputNote" />
+  </view>
+
+  <view class="pay-card">
+    <view>
+      <view class="pay-label">支付方式</view>
+      <view class="pay-method">{{paymentMethod}}</view>
+    </view>
+    <view class="pay-tag">到店支付</view>
+  </view>
+
+  <view class="submit-bar">
+    <view>
+      <view class="payable">¥{{totals.payable}}</view>
+      <view class="submit-tip">共 {{totals.count}} 件</view>
+    </view>
+    <button class="submit-button" bindtap="submitOrder" disabled="{{!totals.count}}">提交订单</button>
+  </view>
+</view>

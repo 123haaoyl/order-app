@@ -1,6 +1,7 @@
 {
   "pages": [
     "pages/menu/menu",
+    "pages/checkout/checkout",
     "pages/orders/orders"
   ],
   "window": {
