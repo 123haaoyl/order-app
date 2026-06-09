@@ -56,7 +56,8 @@ let selectedDish = null;
 let selectedSpecIndexes = {};
 let toastTimer = null;
 let menuPage = 1;
-const menuPageSize = 12;
+const desktopMenuPageSize = 12;
+const mobileMenuPageSize = 6;
 const CART_STORAGE_KEY = "order-cart";
 const CUSTOMER_ORDERS_KEY = "customer-orders";
 const MENU_OVERRIDES_KEY = "order-menu-overrides";
@@ -492,9 +493,14 @@ function getFilteredItems() {
 }
 
 function clampCustomerMenuPage(totalItems = getFilteredItems().length) {
+  const menuPageSize = getMenuPageSize();
   const totalPages = Math.max(1, Math.ceil(totalItems / menuPageSize));
   menuPage = Math.min(Math.max(1, menuPage), totalPages);
   return totalPages;
+}
+
+function getMenuPageSize() {
+  return window.matchMedia?.("(max-width: 680px)").matches ? mobileMenuPageSize : desktopMenuPageSize;
 }
 
 function updateCustomerMenuPagination(totalItems) {
@@ -533,6 +539,7 @@ function renderMenu() {
   const items = getFilteredItems();
   const monthlyCounts = getMonthlyOrderCounts();
   clampCustomerMenuPage(items.length);
+  const menuPageSize = getMenuPageSize();
   const start = (menuPage - 1) * menuPageSize;
   const pageItems = items.slice(start, start + menuPageSize);
   updateCustomerMenuPagination(items.length);
@@ -882,6 +889,10 @@ customerMenuPageJump?.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     jumpCustomerMenuPage(customerMenuPageJump.value);
   }
+});
+window.addEventListener("resize", () => {
+  clampCustomerMenuPage();
+  renderMenu();
 });
 tableInput.addEventListener("input", () => {
   updateBoundTable();

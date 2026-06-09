@@ -1700,25 +1700,109 @@ select:focus {
 }
 
 @media (max-width: 680px) {
+  h1 {
+    font-size: 30px;
+    line-height: 1.08;
+  }
+
+  h2 {
+    font-size: 19px;
+  }
+
   .app-shell {
-    padding: 12px;
+    padding: 10px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0 12px;
+  }
+
+  .topbar .admin-top-actions {
+    justify-content: flex-end;
+    width: auto;
   }
 
   .layout {
+    gap: 10px;
     grid-template-columns: 1fr;
+  }
+
+  .shop-hero,
+  .category-panel,
+  .menu-panel,
+  .cart-panel,
+  .admin-panel,
+  .admin-tabs,
+  .menu-bulk-toolbar,
+  .pagination-bar {
+    box-shadow: none;
+  }
+
+  .shop-hero {
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 12px;
+  }
+
+  .shop-hero h2 {
+    margin-bottom: 8px;
+    font-size: 22px;
+  }
+
+  .shop-meta,
+  .table-bind {
+    gap: 6px;
+    font-size: 12px;
   }
 
   .category-panel {
     position: static;
+    padding: 10px;
+  }
+
+  .category-title {
+    margin-bottom: 8px;
   }
 
   .category-list {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .category-list::-webkit-scrollbar,
+  .admin-tabs::-webkit-scrollbar,
+  #menu-admin-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .category-button {
+    flex: 0 0 auto;
+    min-width: 88px;
+    min-height: 36px;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+
+  .menu-panel,
+  .cart-panel {
+    padding: 10px;
+  }
+
+  .search-row {
+    gap: 8px;
+  }
+
+  .menu-list {
+    gap: 8px;
   }
 
   .search-row,
   .dish-form-grid,
-  .menu-list,
   .stats-grid,
   .category-admin-list,
   .category-add-controls,
@@ -1736,11 +1820,39 @@ select:focus {
   }
 
   .admin-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 8px;
   }
 
-  .admin-table-row {
-    grid-template-columns: 1fr;
+  .admin-tabs button {
+    flex: 0 0 auto;
+    min-width: 92px;
+    min-height: 34px;
+    padding: 0 10px;
+    white-space: nowrap;
+  }
+
+  .admin-layout,
+  .admin-dashboard,
+  .admin-tab-panel {
+    gap: 10px;
+  }
+
+  .admin-panel {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  input,
+  textarea,
+  select {
+    min-height: 38px;
+  }
+
+  .admin-field {
+    gap: 4px;
   }
 
   .admin-panel-header,
@@ -1755,6 +1867,7 @@ select:focus {
   .admin-top-actions,
   .menu-bulk-toolbar {
     width: 100%;
+    gap: 8px;
   }
 
   .admin-controls > *,
@@ -1772,20 +1885,45 @@ select:focus {
   }
 
   #menu-admin-list .admin-table-row {
-    grid-template-columns: minmax(0, 1fr);
-    min-width: 0;
+    grid-template-columns: minmax(210px, 1.45fr) minmax(116px, 0.78fr) minmax(104px, 0.64fr) 78px 78px 90px 72px;
+    min-width: 810px;
+    gap: 8px;
+    padding: 8px 0;
   }
 
   #menu-admin-list .admin-table-row.head {
-    display: none;
+    display: grid;
   }
 
   #menu-admin-list .admin-table-row.head span:first-child {
-    padding-left: 0;
+    padding-left: 32px;
+  }
+
+  .menu-select-cell {
+    grid-template-columns: 20px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .menu-select-cell input {
+    width: 15px;
+    height: 15px;
   }
 
   .page-size-control {
     margin-left: 0;
+  }
+
+  .pagination-bar {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .pagination-bar > * {
+    flex: 0 0 auto;
+  }
+
+  .page-jump-control input {
+    width: 64px;
   }
 
   .wheel-stage {
@@ -1793,12 +1931,62 @@ select:focus {
   }
 
   .dish-card {
-    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 8px;
+    min-height: 118px;
+    padding: 9px;
   }
 
   .dish-image {
-    min-height: 118px;
-    font-size: 34px;
+    min-height: 86px;
+    font-size: 30px;
+  }
+
+  .dish-info {
+    gap: 6px;
+  }
+
+  .dish-title-row h3 {
+    font-size: 16px;
+  }
+
+  .dish-info p {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .dish-meta {
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .dish-bottom strong {
+    font-size: 16px;
+  }
+
+  .add-dish-button,
+  .ghost-button,
+  .primary-button,
+  .danger-button {
+    min-height: 36px;
+    padding-inline: 12px;
+  }
+
+  .cart-panel {
+    gap: 10px;
+  }
+
+  .cart-list {
+    min-height: 0;
+  }
+
+  .order-card {
+    padding: 12px;
+  }
+
+  .order-card-header,
+  .order-card-footer {
+    gap: 8px;
   }
 
   .span-2 {
