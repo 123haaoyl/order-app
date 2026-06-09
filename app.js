@@ -62,23 +62,6 @@ let cart = loadCart();
 
 const forceDemoMode = new URLSearchParams(window.location.search).get("demo") === "1";
 let categories = getMenuCategories();
-const supabaseClient = createSupabaseClient();
-
-function createSupabaseClient() {
-  if (forceDemoMode) return null;
-
-  const config = window.ORDER_APP_SUPABASE || {};
-  const hasConfig =
-    config.url &&
-    config.anonKey &&
-    !String(config.anonKey).includes("PASTE_YOUR_SUPABASE");
-
-  if (!hasConfig || !window.supabase?.createClient) {
-    return null;
-  }
-
-  return window.supabase.createClient(config.url, config.anonKey);
-}
 
 function configureDemoLinks() {
   if (!forceDemoMode) return;
@@ -693,44 +676,21 @@ function getOrderValidationMessage() {
 async function submitOrderToBackend() {
   const payload = createOrderPayload();
 
-  if (!supabaseClient) {
+  if (forceDemoMode) {
     return prepareStoredOrder(payload, "local");
   }
 
-  const extendedPayload = {
-    order_type: payload.order_type,
-    table_no: payload.table_no,
-    delivery_address: payload.delivery_address,
-    delivery_time: payload.delivery_time,
-    payment_method: payload.payment_method,
-    note: payload.note,
-    items: payload.items,
-    subtotal: payload.subtotal,
-    packing_fee: payload.packing_fee,
-    delivery_fee: payload.delivery_fee,
-    payable: payload.payable,
-    total: payload.total,
-    status: payload.status,
-    order_text: payload.order_text,
-  };
-
-  const { error } = await supabaseClient.from("orders").insert(extendedPayload);
-  if (!error) return prepareStoredOrder(payload, "supabase");
-
-  const legacyPayload = {
-    table_no: payload.table_no,
-    note: payload.note,
-    items: payload.items,
-    total: payload.total,
-    status: payload.status,
-    order_text: payload.order_text,
-  };
-  const legacyResult = await supabaseClient.from("orders").insert(legacyPayload);
-  if (legacyResult.error) {
-    throw new Error(legacyResult.error.message || error.message || "订单提交失败");
+  const response = await fetch("./api/orders", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error || "订单提交失败，请检查云端服务配置。");
   }
 
-  return prepareStoredOrder(payload, "supabase");
+  return prepareStoredOrder({ ...payload, ...(result.order || {}) }, "cloud");
 }
 
 function openDishDialog(dishId) {
