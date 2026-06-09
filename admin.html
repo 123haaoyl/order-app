@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>商家管理后台</title>
     <script src="./theme.js?v=fuzhou-menu"></script>
-    <link rel="stylesheet" href="./styles.css?v=admin-bulk-decider" />
+    <link rel="stylesheet" href="./styles.css?v=decider-order" />
   </head>
   <body>
     <div class="app-shell admin-shell">
@@ -190,6 +190,31 @@
                 </article>
               </div>
               <div class="decider-chip-list" id="decider-direction-list"></div>
+              <section class="decider-candidates-panel">
+                <div class="section-title-row">
+                  <div>
+                    <p class="eyebrow">候选菜品</p>
+                    <h3>本轮随机池</h3>
+                  </div>
+                  <span id="decider-round-label" class="admin-muted">还没有开始</span>
+                </div>
+                <div class="candidate-grid" id="decider-candidate-list"></div>
+              </section>
+              <section class="decider-order-panel">
+                <div class="section-title-row">
+                  <div>
+                    <p class="eyebrow">保留清单</p>
+                    <h3>决定要吃的菜</h3>
+                  </div>
+                  <strong id="decider-order-total">¥0</strong>
+                </div>
+                <div id="decider-order-list" class="decider-order-list"></div>
+                <div class="decider-submit-row">
+                  <input id="decider-table-no" type="text" placeholder="桌号，如 A08" />
+                  <input id="decider-note" type="text" placeholder="备注，可不填" />
+                  <button class="primary-button" id="submit-decider-order" type="button">提交订单</button>
+                </div>
+              </section>
             </section>
           </section>
 
@@ -304,6 +329,6 @@
     <div class="app-toast" id="app-toast" role="status" aria-live="polite" hidden></div>
 
     <script src="./data.js?v=menu-100"></script>
-    <script src="./admin.js?v=bulk-decider"></script>
+    <script src="./admin.js?v=decider-order"></script>
   </body>
 </html>

@@ -1027,7 +1027,7 @@ select:focus {
 
 .decider-layout {
   display: grid;
-  grid-template-columns: 140px 220px minmax(0, 1fr);
+  grid-template-columns: 150px 230px minmax(0, 1fr);
   gap: 16px;
   align-items: stretch;
 }
@@ -1044,12 +1044,12 @@ select:focus {
   display: grid;
   min-height: 180px;
   place-items: center;
-  font-size: 62px;
+  font-size: 76px;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .dice-card.rolling {
-  animation: dice-roll 520ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation: dice-roll 1400ms cubic-bezier(0.18, 0.82, 0.22, 1);
 }
 
 .wheel-stage {
@@ -1114,7 +1114,7 @@ select:focus {
 }
 
 .food-wheel.spinning {
-  animation: wheel-spin 680ms cubic-bezier(0.15, 0.76, 0.2, 1) both;
+  animation: wheel-spin 1800ms cubic-bezier(0.12, 0.76, 0.14, 1) both;
 }
 
 .decider-result {
@@ -1133,6 +1133,12 @@ select:focus {
   line-height: 1.7;
 }
 
+.decider-result-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .decider-chip-list {
   display: flex;
   flex-wrap: wrap;
@@ -1147,6 +1153,85 @@ select:focus {
   padding: 8px 12px;
   font-size: 13px;
   font-weight: 800;
+}
+
+.decider-candidates-panel,
+.decider-order-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 14px;
+}
+
+.candidate-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.candidate-card {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  min-height: 94px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 12px 12px 12px 46px;
+}
+
+.candidate-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(234, 89, 63, 0.14);
+}
+
+.candidate-index {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--button-ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.candidate-card small {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.decider-order-list {
+  display: grid;
+  gap: 8px;
+}
+
+.decider-order-row,
+.decider-submit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.decider-order-row {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.decider-order-row strong,
+.decider-order-panel .section-title-row strong {
+  color: var(--accent-dark);
+}
+
+.decider-submit-row {
+  grid-template-columns: 150px minmax(0, 1fr) auto;
 }
 
 .settings-grid {
@@ -1454,6 +1539,7 @@ select:focus {
 
   .settings-grid,
   .decider-layout,
+  .candidate-grid,
   .table-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1489,6 +1575,9 @@ select:focus {
   .category-admin-row,
   .settings-grid,
   .decider-layout,
+  .candidate-grid,
+  .decider-order-row,
+  .decider-submit-row,
   .table-grid {
     grid-template-columns: 1fr;
   }

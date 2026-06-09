@@ -66,6 +66,13 @@ const foodDice = document.querySelector("#food-dice");
 const foodWheel = document.querySelector("#food-wheel");
 const foodResult = document.querySelector("#food-result");
 const deciderDirectionList = document.querySelector("#decider-direction-list");
+const deciderRoundLabel = document.querySelector("#decider-round-label");
+const deciderCandidateList = document.querySelector("#decider-candidate-list");
+const deciderOrderList = document.querySelector("#decider-order-list");
+const deciderOrderTotal = document.querySelector("#decider-order-total");
+const deciderTableNo = document.querySelector("#decider-table-no");
+const deciderNote = document.querySelector("#decider-note");
+const submitDeciderOrder = document.querySelector("#submit-decider-order");
 
 if (forceDemoMode) {
   const customerLink = document.querySelector('a[href="./index.html"]');
@@ -80,6 +87,9 @@ let selectedDishIds = new Set();
 let menuPage = 1;
 let menuPageSizeValue = 12;
 let foodWheelRotation = 0;
+let deciderCandidates = [];
+let deciderSavedItems = [];
+let deciderLastResult = null;
 
 const statusLabels = {
   new: "待接单",
@@ -96,6 +106,7 @@ const deciderFallbackDirections = [
   { title: "热乎主食小吃", cue: "鱼丸汤、锅边糊、肉燕一类，轻松不纠结。", icon: "🥣" },
   { title: "甜品饮品收尾", cue: "今天不想吃太重，可以用甜品饮品做轻食方向。", icon: "🧋" },
 ];
+const diceFaces = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
 
 function currency(value) {
   return `¥${Number(value || 0).toFixed(0)}`;
@@ -999,84 +1010,274 @@ function renderTables() {
     .join("");
 }
 
-function getDeciderDirections() {
-  const activeItems = menuItems.filter((item) => item.isActive !== false);
-  if (!activeItems.length) return deciderFallbackDirections;
-
-  const categoryDirections = getMenuCategories()
-    .map((category) => {
-      const items = activeItems.filter((item) => item.category === category);
-      if (!items.length) return null;
-      const hotItem = [...items].sort((a, b) => Number(b.monthlySales || 0) - Number(a.monthlySales || 0))[0];
-      return {
-        title: category,
-        cue: `可以从「${hotItem.name}」开始点，再搭配同类菜。`,
-        icon: hotItem.image || "🍽️",
-      };
-    })
-    .filter(Boolean);
-
-  const dishDirections = [...activeItems]
-    .sort((a, b) => Number(b.monthlySales || 0) - Number(a.monthlySales || 0))
-    .slice(0, 6)
-    .map((item) => ({
-      title: item.name,
-      cue: `${item.category} · ${item.tag || "今日灵感"} · ${currency(item.price)} 起`,
-      icon: item.image || "🍽️",
-    }));
-
-  return [...categoryDirections, ...dishDirections].slice(0, 10);
+function getActiveDeciderDishes() {
+  return menuItems.filter((item) => item.isActive !== false && Number(item.stock || 0) > 0);
 }
 
-function pickFoodDirection() {
-  const directions = getDeciderDirections();
-  return directions[Math.floor(Math.random() * directions.length)] || deciderFallbackDirections[0];
+function shuffleItems(items) {
+  return [...items].sort(() => Math.random() - 0.5);
+}
+
+function getDishCue(dish) {
+  return `${dish.category} · ${dish.tag || "今日灵感"} · ${currency(dish.price)} 起`;
+}
+
+function prepareDeciderCandidates(count = 6) {
+  const activeItems = getActiveDeciderDishes();
+  deciderCandidates = shuffleItems(activeItems).slice(0, Math.min(count, activeItems.length));
+  deciderLastResult = null;
+  renderFoodDecider();
+  return deciderCandidates;
+}
+
+function getDeciderCandidates(count = 6) {
+  if (deciderCandidates.length < Math.min(count, getActiveDeciderDishes().length)) {
+    return prepareDeciderCandidates(count);
+  }
+  renderFoodDecider();
+  return deciderCandidates;
+}
+
+function renderFoodWheel() {
+  if (!foodWheel) return;
+  const candidates = deciderCandidates.slice(0, 8);
+  foodWheel.innerHTML = candidates.length
+    ? candidates
+        .map((item, index) => `<span style="--i:${index}; --total:${candidates.length}">${escapeHtml(item.image || "🍽️")}</span>`)
+        .join("")
+    : `<span style="--i:0; --total:1">🍽️</span>`;
+}
+
+function renderFoodResult(result, mode = "") {
+  if (!foodResult) return;
+  if (!result) {
+    foodResult.innerHTML = `
+      <p class="eyebrow">等待开摇</p>
+      <h3>先随机出候选菜，再慢慢决定</h3>
+      <p>摇骰子会从 6 个候选菜里按点数决定；转盘会从本轮候选菜里转出一个。</p>
+    `;
+    return;
+  }
+
+  const addDisabled = deciderSavedItems.some((item) => item.id === result.dish.id) ? "disabled" : "";
+  foodResult.innerHTML = `
+    <p class="eyebrow">${mode === "dice" ? `骰子点数 ${result.point}` : "转盘结果"}</p>
+    <h3>${escapeHtml(result.dish.image || "🍽️")} ${escapeHtml(result.dish.name)}</h3>
+    <p>${escapeHtml(getDishCue(result.dish))}</p>
+    <div class="decider-result-actions">
+      <button class="primary-button" data-save-decider-dish="${escapeHtml(result.dish.id)}" type="button" ${addDisabled}>加入清单</button>
+      <button class="ghost-button" data-reroll-decider type="button">不喜欢，再来</button>
+    </div>
+  `;
+}
+
+function renderCandidateList() {
+  if (!deciderCandidateList) return;
+  if (!deciderCandidates.length) {
+    deciderCandidateList.innerHTML = `<div class="empty-state">点击摇骰子或转转盘后，会先随机出本轮候选菜。</div>`;
+    if (deciderRoundLabel) deciderRoundLabel.textContent = "还没有开始";
+    return;
+  }
+
+  if (deciderRoundLabel) deciderRoundLabel.textContent = `${deciderCandidates.length} 个候选菜`;
+  deciderCandidateList.innerHTML = deciderCandidates
+    .map(
+      (dish, index) => `
+        <article class="candidate-card ${deciderLastResult?.dish.id === dish.id ? "active" : ""}">
+          <span class="candidate-index">${index + 1}</span>
+          <strong>${escapeHtml(dish.image || "🍽️")} ${escapeHtml(dish.name)}</strong>
+          <small>${escapeHtml(getDishCue(dish))}</small>
+        </article>
+      `,
+    )
+    .join("");
+}
+
+function renderDeciderSavedList() {
+  if (!deciderOrderList || !deciderOrderTotal || !submitDeciderOrder) return;
+  const total = deciderSavedItems.reduce((sum, item) => sum + Number(item.price || 0), 0);
+  deciderOrderTotal.textContent = currency(total);
+  submitDeciderOrder.disabled = deciderSavedItems.length === 0;
+
+  deciderOrderList.innerHTML = deciderSavedItems.length
+    ? deciderSavedItems
+        .map(
+          (dish) => `
+            <div class="decider-order-row" data-decider-order-dish="${escapeHtml(dish.id)}">
+              <span>${escapeHtml(dish.image || "🍽️")} ${escapeHtml(dish.name)}</span>
+              <strong>${currency(dish.price)}</strong>
+              <button class="danger-button" data-remove-decider-dish="${escapeHtml(dish.id)}" type="button">删除</button>
+            </div>
+          `,
+        )
+        .join("")
+    : `<div class="empty-state">喜欢的结果可以加入这里，最后一起提交订单。</div>`;
 }
 
 function renderFoodDecider() {
   if (!foodWheel || !deciderDirectionList) return;
-  const directions = getDeciderDirections();
-  foodWheel.innerHTML = directions
-    .slice(0, 8)
-    .map((item, index) => `<span style="--i:${index}; --total:${Math.min(directions.length, 8)}">${escapeHtml(item.icon)}</span>`)
-    .join("");
-  deciderDirectionList.innerHTML = directions
-    .slice(0, 8)
-    .map((item) => `<span>${escapeHtml(item.icon)} ${escapeHtml(item.title)}</span>`)
-    .join("");
+  renderFoodWheel();
+  renderCandidateList();
+  renderDeciderSavedList();
+  renderFoodResult(deciderLastResult, deciderLastResult?.mode || "");
+  deciderDirectionList.innerHTML = deciderCandidates.length
+    ? deciderCandidates.map((item, index) => `<span>${index + 1}. ${escapeHtml(item.name)}</span>`).join("")
+    : deciderFallbackDirections.map((item) => `<span>${escapeHtml(item.icon)} ${escapeHtml(item.title)}</span>`).join("");
 }
 
-function showFoodDecision(direction, mode) {
-  if (!direction || !foodResult) return;
-  foodResult.innerHTML = `
-    <p class="eyebrow">${mode === "wheel" ? "转盘结果" : "骰子结果"}</p>
-    <h3>${escapeHtml(direction.icon)} ${escapeHtml(direction.title)}</h3>
-    <p>${escapeHtml(direction.cue)}</p>
-  `;
-  showToast(`今天吃：${direction.title}`);
+function saveDeciderDish(dishId) {
+  const dish = menuItems.find((item) => item.id === dishId);
+  if (!dish) return;
+  if (!deciderSavedItems.some((item) => item.id === dish.id)) {
+    deciderSavedItems.push(dish);
+  }
+  renderFoodDecider();
+  showToast(`${dish.name} 已加入清单`);
+}
+
+function removeDeciderDish(dishId) {
+  deciderSavedItems = deciderSavedItems.filter((item) => item.id !== dishId);
+  renderFoodDecider();
+}
+
+function createDeciderOrderPayload() {
+  const createdAt = new Date().toISOString();
+  const items = deciderSavedItems.map((dish) => ({
+    id: dish.id,
+    name: dish.name,
+    category: dish.category,
+    specs: [],
+    spec_text: "默认",
+    price: Number(dish.price || 0),
+    quantity: 1,
+    subtotal: Number(dish.price || 0),
+  }));
+  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const tableNo = String(deciderTableNo?.value || "").trim() || "后台随机";
+  const note = String(deciderNote?.value || "").trim();
+  const orderText = [
+    "来源：今天吃什么",
+    `桌号：${tableNo}`,
+    `时间：${formatTime(createdAt)}`,
+    "",
+    "菜品：",
+    ...items.map((item) => `- ${item.name} × 1 = ${currency(item.subtotal)}`),
+    "",
+    `实付：${currency(subtotal)}`,
+    `备注：${note || "无"}`,
+  ].join("\n");
+
+  return {
+    order_type: "dinein",
+    table_no: tableNo,
+    delivery_address: "",
+    delivery_time: "",
+    payment_method: "到店支付",
+    note: note || "后台今天吃什么生成",
+    items,
+    subtotal,
+    packing_fee: 0,
+    delivery_fee: 0,
+    payable: subtotal,
+    total: subtotal,
+    status: "new",
+    status_label: "待接单",
+    created_at: createdAt,
+    order_text: orderText,
+  };
+}
+
+async function submitDeciderOrderList() {
+  if (!deciderSavedItems.length) {
+    showToast("请先把喜欢的菜加入清单");
+    return;
+  }
+
+  const payload = createDeciderOrderPayload();
+  const previousText = submitDeciderOrder?.textContent || "";
+  if (submitDeciderOrder) {
+    submitDeciderOrder.disabled = true;
+    submitDeciderOrder.textContent = "提交中...";
+  }
+
+  try {
+    if (useCloudApi) {
+      const result = await requestJson("./api/orders", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      latestOrders = [result.order || payload, ...latestOrders];
+    } else {
+      const orders = readLocalOrders();
+      orders.unshift({ ...payload, id: `LOCAL-${Date.now()}` });
+      writeLocalOrders(orders);
+      latestOrders = getDemoOrders();
+    }
+
+    deciderSavedItems = [];
+    if (deciderTableNo) deciderTableNo.value = "";
+    if (deciderNote) deciderNote.value = "";
+    renderFoodDecider();
+    renderOrders();
+    showToast("今天吃什么清单已提交到订单管理");
+  } catch (error) {
+    showToast(getFriendlyErrorMessage(error, "提交失败，请稍后重试"));
+  } finally {
+    if (submitDeciderOrder) {
+      submitDeciderOrder.disabled = deciderSavedItems.length === 0;
+      submitDeciderOrder.textContent = previousText || "提交订单";
+    }
+  }
+}
+
+function showDeciderResult(result, mode) {
+  deciderLastResult = { ...result, mode };
+  renderFoodDecider();
+  showToast(`${mode === "dice" ? `骰子 ${result.point} 点` : "转盘"}：${result.dish.name}`);
 }
 
 function rollFoodDecision() {
-  const direction = pickFoodDirection();
+  const candidates = prepareDeciderCandidates(6);
+  if (!candidates.length) {
+    showToast("当前没有可随机的上架菜品");
+    return;
+  }
+
+  const point = Math.floor(Math.random() * Math.min(6, candidates.length)) + 1;
+  const dish = candidates[point - 1];
   if (foodDice) {
     foodDice.classList.remove("rolling");
+    foodDice.textContent = "🎲";
     void foodDice.offsetWidth;
     foodDice.classList.add("rolling");
-    foodDice.textContent = direction.icon;
   }
-  window.setTimeout(() => showFoodDecision(direction, "dice"), 420);
+  window.setTimeout(() => {
+    if (foodDice) foodDice.textContent = diceFaces[point - 1] || String(point);
+    showDeciderResult({ dish, point }, "dice");
+  }, 1400);
 }
 
 function spinFoodDecision() {
-  const direction = pickFoodDirection();
-  foodWheelRotation += 720 + Math.floor(Math.random() * 360);
+  const candidates = prepareDeciderCandidates(8);
+  if (!candidates.length) {
+    showToast("当前没有可随机的上架菜品");
+    return;
+  }
+
+  const resultIndex = Math.floor(Math.random() * candidates.length);
+  const dish = candidates[resultIndex];
+  const slice = 360 / candidates.length;
+  const targetToPointer = 360 - resultIndex * slice - slice / 2;
+  const currentRotation = ((foodWheelRotation % 360) + 360) % 360;
+  const correction = (targetToPointer - currentRotation + 360) % 360;
+  foodWheelRotation += 1080 + correction;
   if (foodWheel) {
     foodWheel.style.setProperty("--spin", `${foodWheelRotation}deg`);
     foodWheel.classList.remove("spinning");
     void foodWheel.offsetWidth;
     foodWheel.classList.add("spinning");
   }
-  window.setTimeout(() => showFoodDecision(direction, "wheel"), 650);
+  window.setTimeout(() => showDeciderResult({ dish, point: resultIndex + 1 }, "wheel"), 1800);
 }
 
 function renderStaticModules() {
@@ -1318,6 +1519,27 @@ menuNextPage?.addEventListener("click", () => {
 
 rollFoodDice?.addEventListener("click", rollFoodDecision);
 spinFoodWheel?.addEventListener("click", spinFoodDecision);
+foodResult?.addEventListener("click", (event) => {
+  const saveButton = event.target.closest("[data-save-decider-dish]");
+  if (saveButton) {
+    saveDeciderDish(saveButton.dataset.saveDeciderDish);
+    return;
+  }
+
+  const rerollButton = event.target.closest("[data-reroll-decider]");
+  if (!rerollButton) return;
+  if (deciderLastResult?.mode === "wheel") {
+    spinFoodDecision();
+  } else {
+    rollFoodDecision();
+  }
+});
+deciderOrderList?.addEventListener("click", (event) => {
+  const removeButton = event.target.closest("[data-remove-decider-dish]");
+  if (!removeButton) return;
+  removeDeciderDish(removeButton.dataset.removeDeciderDish);
+});
+submitDeciderOrder?.addEventListener("click", submitDeciderOrderList);
 
 addCategory?.addEventListener("click", addMenuCategory);
 newCategoryName?.addEventListener("keydown", (event) => {
