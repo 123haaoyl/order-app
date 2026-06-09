@@ -1,10 +1,13 @@
-<view class="page">
+<view class="page theme-{{theme}}">
   <view class="shop-head">
     <view>
       <view class="shop-title">{{shop.name}}</view>
       <view class="shop-subtitle">{{shop.subtitle}}</view>
     </view>
-    <view class="shop-badge">月售热榜</view>
+    <view class="head-actions">
+      <button class="theme-toggle" bindtap="toggleTheme">{{theme === 'dark' ? '浅色' : '深色'}}</button>
+      <view class="shop-badge">月售热榜</view>
+    </view>
   </view>
 
   <view class="top-tools">
@@ -40,7 +43,7 @@
       </view>
 
       <view class="dish-list">
-        <view wx:for="{{pageItems}}" wx:key="id" class="dish-card">
+        <view wx:for="{{filteredItems}}" wx:key="id" class="dish-card">
           <view class="dish-icon">{{item.image || '🍽️'}}</view>
           <view class="dish-main">
             <view class="dish-name">{{item.name}}</view>
@@ -60,12 +63,6 @@
             </view>
           </view>
         </view>
-      </view>
-
-      <view class="pager">
-        <button size="mini" bindtap="prevPage" disabled="{{page <= 1}}">上一页</button>
-        <text>{{page}} / {{totalPages}}</text>
-        <button size="mini" bindtap="nextPage" disabled="{{page >= totalPages}}">下一页</button>
       </view>
     </scroll-view>
   </view>

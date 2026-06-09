@@ -2,11 +2,23 @@ const app = getApp();
 
 Page({
   data: {
+    theme: "light",
     orders: []
   },
 
   onShow() {
+    this.syncTheme();
     this.reloadOrders();
+  },
+
+  syncTheme() {
+    const theme = app.applyTheme(app.getTheme());
+    this.setData({ theme });
+  },
+
+  toggleTheme() {
+    const theme = app.toggleTheme();
+    this.setData({ theme });
   },
 
   reloadOrders() {

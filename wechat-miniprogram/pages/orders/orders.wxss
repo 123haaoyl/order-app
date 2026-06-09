@@ -1,5 +1,8 @@
 .page {
+  min-height: 100vh;
   padding: 20rpx;
+  background: #f6f4ef;
+  color: #211f1b;
 }
 
 .page-head,
@@ -14,6 +17,48 @@
 
 .page-head {
   margin-bottom: 18rpx;
+}
+
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.theme-toggle,
+.ghost-button,
+.primary-button {
+  min-height: 56rpx;
+  margin: 0;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 56rpx;
+  padding: 0 18rpx;
+}
+
+.theme-toggle {
+  border: 1rpx solid rgba(33, 31, 27, 0.16);
+  background: #211f1b;
+  color: #fffaf2;
+}
+
+.ghost-button {
+  border: 1rpx solid #ded8ca;
+  background: #fffdf8;
+  color: #5f594f;
+}
+
+.primary-button {
+  border: 0;
+  background: #c7442e;
+  color: #fff;
+}
+
+.theme-toggle::after,
+.ghost-button::after,
+.primary-button::after {
+  border: 0;
 }
 
 .eyebrow {
@@ -80,4 +125,50 @@
   gap: 20rpx;
   justify-items: center;
   color: #706c63;
+}
+
+.theme-dark {
+  background: #11130f;
+  color: #f7f1e7;
+}
+
+.theme-dark .eyebrow {
+  color: #6ed6a7;
+}
+
+.theme-dark .theme-toggle {
+  border-color: rgba(244, 193, 93, 0.35);
+  background: #f4c15d;
+  color: #211f1b;
+}
+
+.theme-dark .ghost-button {
+  border-color: #39382f;
+  background: #24261f;
+  color: #f7f1e7;
+}
+
+.theme-dark .order-card,
+.theme-dark .empty {
+  border-color: #39382f;
+  background: #181a16;
+}
+
+.theme-dark .status {
+  border-color: rgba(110, 214, 167, 0.35);
+  color: #6ed6a7;
+}
+
+.theme-dark .lines,
+.theme-dark .order-foot,
+.theme-dark .empty {
+  color: #aaa397;
+}
+
+.theme-dark .order-foot {
+  border-color: #39382f;
+}
+
+.theme-dark .total {
+  color: #ffad91;
 }

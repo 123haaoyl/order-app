@@ -5,6 +5,7 @@ const app = getApp();
 
 Page({
   data: {
+    theme: "light",
     shop: shopConfig,
     orderType: "dinein",
     tableOptions: [],
@@ -19,6 +20,7 @@ Page({
   },
 
   onLoad(query = {}) {
+    this.syncTheme();
     const tableOptions = tables
       .filter((table) => table.status !== "occupied")
       .map((table) => ({ value: table.id, label: `${table.id} · ${table.area} · ${table.seats}人` }));
@@ -29,6 +31,20 @@ Page({
       orderType: query.type || "dinein",
       tableNo: decodeURIComponent(query.table || "")
     }, () => this.refreshOrder());
+  },
+
+  onShow() {
+    this.syncTheme();
+  },
+
+  syncTheme() {
+    const theme = app.applyTheme(app.getTheme());
+    this.setData({ theme });
+  },
+
+  toggleTheme() {
+    const theme = app.toggleTheme();
+    this.setData({ theme });
   },
 
   refreshOrder() {

@@ -12,15 +12,13 @@ const app = getApp();
 
 Page({
   data: {
+    theme: "light",
     shop: shopConfig,
     categories: [],
     activeCategory: "全部",
     keyword: "",
-    page: 1,
-    pageSize: 8,
-    totalPages: 1,
     filteredCount: 0,
-    pageItems: [],
+    filteredItems: [],
     tableOptions: [],
     tableNo: "",
     orderType: "dinein",
@@ -48,6 +46,23 @@ Page({
     this.setData({ categories, tableOptions, tableNo, cart }, () => this.refreshAll());
   },
 
+  onShow() {
+    const cart = wx.getStorageSync(app.globalData.cartStorageKey) || {};
+    this.setData({ cart });
+    this.syncTheme();
+    this.refreshAll();
+  },
+
+  syncTheme() {
+    const theme = app.applyTheme(app.getTheme());
+    this.setData({ theme });
+  },
+
+  toggleTheme() {
+    const theme = app.toggleTheme();
+    this.setData({ theme });
+  },
+
   getFilteredItems() {
     const keyword = this.data.keyword.trim().toLowerCase();
     return menuItems
@@ -69,10 +84,7 @@ Page({
 
   refreshMenu() {
     const items = this.getFilteredItems();
-    const totalPages = Math.max(1, Math.ceil(items.length / this.data.pageSize));
-    const page = Math.min(Math.max(1, this.data.page), totalPages);
-    const start = (page - 1) * this.data.pageSize;
-    this.setData({ page, totalPages, filteredCount: items.length, pageItems: items.slice(start, start + this.data.pageSize) });
+    this.setData({ filteredCount: items.length, filteredItems: items });
   },
 
   refreshCart() {
@@ -100,19 +112,11 @@ Page({
   },
 
   inputKeyword(event) {
-    this.setData({ keyword: event.detail.value, page: 1 }, () => this.refreshMenu());
+    this.setData({ keyword: event.detail.value }, () => this.refreshMenu());
   },
 
   setCategory(event) {
-    this.setData({ activeCategory: event.currentTarget.dataset.category, page: 1 }, () => this.refreshMenu());
-  },
-
-  prevPage() {
-    this.setData({ page: this.data.page - 1 }, () => this.refreshMenu());
-  },
-
-  nextPage() {
-    this.setData({ page: this.data.page + 1 }, () => this.refreshMenu());
+    this.setData({ activeCategory: event.currentTarget.dataset.category }, () => this.refreshMenu());
   },
 
   openSpec(event) {

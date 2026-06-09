@@ -1,4 +1,12 @@
-<view class="page">
+<view class="page theme-{{theme}}">
+  <view class="checkout-head">
+    <view>
+      <view class="checkout-title">确认订单</view>
+      <view class="checkout-subtitle">核对菜品和取餐信息</view>
+    </view>
+    <button class="theme-toggle" bindtap="toggleTheme">{{theme === 'dark' ? '浅色' : '深色'}}</button>
+  </view>
+
   <view class="address-card">
     <view class="mode-tabs">
       <button class="{{orderType === 'dinein' ? 'active' : ''}}" bindtap="setOrderType" data-type="dinein">到店</button>

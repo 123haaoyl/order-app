@@ -2,6 +2,7 @@
   min-height: 100vh;
   padding: 20rpx 20rpx 136rpx;
   background: #f6f4ef;
+  color: #211f1b;
 }
 
 .address-card,
@@ -12,6 +13,43 @@
   border-radius: 18rpx;
   background: #fffdf8;
   padding: 22rpx;
+}
+
+.checkout-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 18rpx;
+}
+
+.checkout-title {
+  font-size: 38rpx;
+  font-weight: 900;
+}
+
+.checkout-subtitle {
+  color: #706c63;
+  font-size: 24rpx;
+}
+
+.theme-toggle {
+  flex: 0 0 auto;
+  min-width: 88rpx;
+  min-height: 52rpx;
+  margin: 0;
+  border: 1rpx solid rgba(33, 31, 27, 0.16);
+  border-radius: 999rpx;
+  background: #211f1b;
+  color: #fffaf2;
+  font-size: 22rpx;
+  font-weight: 800;
+  line-height: 52rpx;
+  padding: 0 16rpx;
+}
+
+.theme-toggle::after {
+  border: 0;
 }
 
 .mode-tabs {
@@ -159,4 +197,71 @@ textarea {
   border-radius: 999rpx;
   font-size: 30rpx;
   font-weight: 900;
+}
+
+.theme-dark {
+  background: #11130f;
+  color: #f7f1e7;
+}
+
+.theme-dark .address-card,
+.theme-dark .order-card,
+.theme-dark .remark-card,
+.theme-dark .pay-card,
+.theme-dark .submit-bar {
+  background: #181a16;
+}
+
+.theme-dark .mode-tabs {
+  background: #24261f;
+}
+
+.theme-dark .mode-tabs button {
+  color: #aaa397;
+}
+
+.theme-dark .mode-tabs button.active,
+.theme-dark .submit-button {
+  background: #e85d43;
+  color: #fffaf2;
+}
+
+.theme-dark .theme-toggle {
+  border-color: rgba(244, 193, 93, 0.35);
+  background: #f4c15d;
+  color: #211f1b;
+}
+
+.theme-dark .target-title,
+.theme-dark .checkout-subtitle,
+.theme-dark .goods-spec,
+.theme-dark .goods-count,
+.theme-dark .pay-label,
+.theme-dark .submit-tip,
+.theme-dark .fee-row {
+  color: #aaa397;
+}
+
+.theme-dark input,
+.theme-dark textarea {
+  background: #24261f;
+  color: #f7f1e7;
+}
+
+.theme-dark .goods-icon {
+  background: #26291f;
+}
+
+.theme-dark .fee-row {
+  border-color: #39382f;
+}
+
+.theme-dark .goods-price,
+.theme-dark .payable {
+  color: #ffad91;
+}
+
+.theme-dark .pay-tag {
+  background: rgba(232, 93, 67, 0.16);
+  color: #ffad91;
 }
