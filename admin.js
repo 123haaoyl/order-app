@@ -482,6 +482,36 @@ function showAuthMessage(message) {
   authMessage.textContent = message || "";
 }
 
+function getFriendlyErrorMessage(error, fallback = "操作失败，请稍后重试") {
+  const message = String(error?.message || error || "").trim();
+  const lowerMessage = message.toLowerCase();
+
+  if (!message) return fallback;
+  if (lowerMessage.includes("failed to fetch") || lowerMessage.includes("network")) {
+    return "无法连接后台服务，请检查网络、Supabase 项目地址和 anon key 是否正确。";
+  }
+  if (lowerMessage.includes("invalid login credentials")) {
+    return "邮箱或密码不正确，请重新输入。";
+  }
+  if (lowerMessage.includes("email not confirmed")) {
+    return "邮箱还没有完成验证，请先到 Supabase 后台确认该用户邮箱。";
+  }
+  if (lowerMessage.includes("invalid api key") || lowerMessage.includes("jwt")) {
+    return "后台 API Key 无效，请检查 supabase-config.js 里的 anonKey。";
+  }
+  if (lowerMessage.includes("permission denied") || lowerMessage.includes("row-level security") || lowerMessage.includes("not authorized")) {
+    return "当前账号没有后台数据权限，请检查 Supabase 的后台用户权限和 RLS 策略。";
+  }
+  if (lowerMessage.includes("timeout")) {
+    return "连接后台超时，请稍后重试。";
+  }
+  if (lowerMessage.includes("not found")) {
+    return "没有找到后台服务或数据表，请检查 Supabase 项目地址和数据库表。";
+  }
+
+  return fallback;
+}
+
 function setSessionView(isSignedIn) {
   loginPanel.hidden = isSignedIn;
   dashboard.hidden = !isSignedIn;
@@ -675,14 +705,18 @@ async function loadOrders() {
   }
 
   ordersList.innerHTML = `<div class="empty-state">加载中...</div>`;
-  const { data, error } = await client.from("orders").select("*").order("created_at", { ascending: false }).limit(500);
-  if (error) {
-    ordersList.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
-    return;
-  }
+  try {
+    const { data, error } = await client.from("orders").select("*").order("created_at", { ascending: false }).limit(500);
+    if (error) {
+      ordersList.innerHTML = `<div class="empty-state">${escapeHtml(getFriendlyErrorMessage(error, "订单加载失败，请检查后台配置。"))}</div>`;
+      return;
+    }
 
-  latestOrders = data || [];
-  renderOrders();
+    latestOrders = data || [];
+    renderOrders();
+  } catch (error) {
+    ordersList.innerHTML = `<div class="empty-state">${escapeHtml(getFriendlyErrorMessage(error, "订单加载失败，请检查网络后重试。"))}</div>`;
+  }
 }
 
 function renderMenuAdmin() {
@@ -790,22 +824,26 @@ async function signIn() {
   signInButton.textContent = "登录中...";
   showAuthMessage("");
 
-  const { error } = await client.auth.signInWithPassword({
-    email: emailInput.value.trim(),
-    password: passwordInput.value,
-  });
+  try {
+    const { error } = await client.auth.signInWithPassword({
+      email: emailInput.value.trim(),
+      password: passwordInput.value,
+    });
 
-  signInButton.disabled = false;
-  signInButton.textContent = "进入后台";
+    if (error) {
+      showAuthMessage(getFriendlyErrorMessage(error, "登录失败，请检查邮箱和密码。"));
+      return;
+    }
 
-  if (error) {
-    showAuthMessage(error.message);
-    return;
+    setSessionView(true);
+    renderStaticModules();
+    await loadOrders();
+  } catch (error) {
+    showAuthMessage(getFriendlyErrorMessage(error, "登录失败，请检查网络后重试。"));
+  } finally {
+    signInButton.disabled = false;
+    signInButton.textContent = "进入后台";
   }
-
-  setSessionView(true);
-  renderStaticModules();
-  await loadOrders();
 }
 
 async function signOut() {
@@ -821,13 +859,17 @@ async function updateStatus(orderId, status) {
     return;
   }
 
-  const { error } = await client.from("orders").update({ status }).eq("id", orderId);
-  if (error) {
-    ordersList.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
-    return;
+  try {
+    const { error } = await client.from("orders").update({ status }).eq("id", orderId);
+    if (error) {
+      ordersList.innerHTML = `<div class="empty-state">${escapeHtml(getFriendlyErrorMessage(error, "订单状态更新失败。"))}</div>`;
+      return;
+    }
+    await loadOrders();
+    showToast(`订单状态已改为${statusLabels[status] || status}`);
+  } catch (error) {
+    ordersList.innerHTML = `<div class="empty-state">${escapeHtml(getFriendlyErrorMessage(error, "订单状态更新失败，请稍后重试。"))}</div>`;
   }
-  await loadOrders();
-  showToast(`订单状态已改为${statusLabels[status] || status}`);
 }
 
 async function deleteOrder(orderId) {
@@ -842,13 +884,17 @@ async function deleteOrder(orderId) {
     return;
   }
 
-  const { error } = await client.from("orders").delete().eq("id", orderId);
-  if (error) {
-    showToast(error.message || "订单删除失败");
-    return;
+  try {
+    const { error } = await client.from("orders").delete().eq("id", orderId);
+    if (error) {
+      showToast(getFriendlyErrorMessage(error, "订单删除失败"));
+      return;
+    }
+    await loadOrders();
+    showToast("订单已删除");
+  } catch (error) {
+    showToast(getFriendlyErrorMessage(error, "订单删除失败，请稍后重试"));
   }
-  await loadOrders();
-  showToast("订单已删除");
 }
 
 function exportOrderCsv() {
@@ -1077,11 +1123,16 @@ async function boot() {
     return;
   }
 
-  const { data } = await client.auth.getSession();
-  const isSignedIn = Boolean(data.session);
-  setSessionView(isSignedIn);
-  if (isSignedIn) {
-    await loadOrders();
+  try {
+    const { data } = await client.auth.getSession();
+    const isSignedIn = Boolean(data.session);
+    setSessionView(isSignedIn);
+    if (isSignedIn) {
+      await loadOrders();
+    }
+  } catch (error) {
+    setSessionView(false);
+    showAuthMessage(getFriendlyErrorMessage(error, "后台连接失败，请检查网络后重试。"));
   }
 }
 
