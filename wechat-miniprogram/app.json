@@ -4,6 +4,7 @@
     "pages/checkout/checkout",
     "pages/orders/orders"
   ],
+  "lazyCodeLoading": "requiredComponents",
   "window": {
     "navigationBarTitleText": "烟台山闽味小馆",
     "navigationBarBackgroundColor": "#c7442e",
