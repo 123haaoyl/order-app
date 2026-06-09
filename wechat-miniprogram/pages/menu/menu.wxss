@@ -323,7 +323,6 @@
 
 .cart-panel-head,
 .cart-row,
-.cart-actions,
 .modal-head {
   display: flex;
   align-items: center;
@@ -336,8 +335,65 @@
   padding: 16rpx 0;
 }
 
+.cart-info {
+  min-width: 0;
+}
+
 .cart-name {
   font-weight: 900;
+}
+
+.cart-price-line {
+  margin-top: 6rpx;
+  color: #c7442e;
+  font-weight: 900;
+}
+
+.cart-actions {
+  display: grid;
+  grid-template-columns: auto 48rpx 36rpx 48rpx;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.delete-button,
+.qty-button {
+  display: grid;
+  min-width: 48rpx;
+  height: 48rpx;
+  place-items: center;
+  border: 1rpx solid #ded8ca;
+  border-radius: 999rpx;
+  background: #fff;
+  color: #706c63;
+  font-size: 22rpx;
+  line-height: 48rpx;
+  padding: 0;
+}
+
+.delete-button {
+  min-width: 72rpx;
+  color: #c7442e;
+}
+
+.qty-text {
+  text-align: center;
+  font-weight: 900;
+}
+
+.cart-empty {
+  color: #706c63;
+  padding: 32rpx 0;
+  text-align: center;
+}
+
+.cart-panel-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  border-top: 1rpx solid #eadfce;
+  padding-top: 18rpx;
 }
 
 .spec-group {

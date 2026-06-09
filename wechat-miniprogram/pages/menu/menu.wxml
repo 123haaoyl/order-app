@@ -70,16 +70,16 @@
     </scroll-view>
   </view>
 
-  <view class="cart-bar">
+  <view class="cart-bar" bindtap="openCartPanel">
     <view class="cart-bubble">
       <text>🛒</text>
       <view wx:if="{{totals.count}}" class="cart-count">{{totals.count}}</view>
     </view>
-    <view class="cart-summary" bindtap="openCartPanel">
+    <view class="cart-summary">
       <view class="cart-price">¥{{totals.payable}}</view>
       <view class="cart-tip">{{totals.count ? '已选 ' + totals.count + ' 件' : '未选购商品'}}</view>
     </view>
-    <button class="checkout-button" bindtap="goCheckout" disabled="{{!totals.count}}">去结算</button>
+    <button class="checkout-button" catchtap="goCheckout" disabled="{{!totals.count}}">去结算</button>
   </view>
 
   <view wx:if="{{cartPanelVisible}}" class="cart-mask" bindtap="closeCartPanel">
@@ -88,16 +88,28 @@
         <text>购物车</text>
         <button size="mini" bindtap="clearCart">清空</button>
       </view>
-      <view wx:for="{{cartItems}}" wx:key="key" class="cart-row">
+      <view wx:if="{{cartItems.length}}" class="cart-list">
+        <view wx:for="{{cartItems}}" wx:key="key" class="cart-row">
+          <view class="cart-info">
+            <view class="cart-name">{{item.image}} {{item.name}}</view>
+            <view class="cart-spec">{{item.specText}}</view>
+            <view class="cart-price-line">¥{{item.unitPrice * item.quantity}}</view>
+          </view>
+          <view class="cart-actions">
+            <button class="delete-button" size="mini" data-key="{{item.key}}" bindtap="removeCartItem">删除</button>
+            <button class="qty-button" size="mini" data-key="{{item.key}}" bindtap="decreaseCart">-</button>
+            <text class="qty-text">{{item.quantity}}</text>
+            <button class="qty-button" size="mini" data-key="{{item.key}}" bindtap="increaseCart">+</button>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="cart-empty">购物车是空的</view>
+      <view class="cart-panel-foot">
         <view>
-          <view class="cart-name">{{item.image}} {{item.name}}</view>
-          <view class="cart-spec">{{item.specText}}</view>
+          <view class="cart-price">¥{{totals.payable}}</view>
+          <view class="cart-tip">共 {{totals.count}} 件</view>
         </view>
-        <view class="cart-actions">
-          <button size="mini" data-key="{{item.key}}" bindtap="decreaseCart">-</button>
-          <text>{{item.quantity}}</text>
-          <button size="mini" data-key="{{item.key}}" bindtap="increaseCart">+</button>
-        </view>
+        <button class="checkout-button" bindtap="goCheckout" disabled="{{!totals.count}}">去结算</button>
       </view>
     </view>
   </view>

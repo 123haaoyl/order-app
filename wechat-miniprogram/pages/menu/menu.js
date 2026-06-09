@@ -179,7 +179,14 @@ Page({
     if (!cart[key]) return;
     cart[key].quantity += delta;
     if (cart[key].quantity <= 0) delete cart[key];
-    this.setData({ cart }, () => this.refreshCart());
+    this.setData({ cart, cartPanelVisible: Object.keys(cart).length > 0 && this.data.cartPanelVisible }, () => this.refreshCart());
+  },
+
+  removeCartItem(event) {
+    const key = event.currentTarget.dataset.key;
+    const cart = { ...this.data.cart };
+    delete cart[key];
+    this.setData({ cart, cartPanelVisible: Object.keys(cart).length > 0 && this.data.cartPanelVisible }, () => this.refreshCart());
   },
 
   openCartPanel() {
