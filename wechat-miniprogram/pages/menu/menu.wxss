@@ -175,7 +175,11 @@
 .dish-list {
   display: grid;
   gap: 2rpx;
-  padding: 0 18rpx 20rpx;
+  padding: 0 18rpx 12rpx;
+}
+
+.dish-scroll-spacer {
+  height: calc(164rpx + env(safe-area-inset-bottom));
 }
 
 .dish-card {
@@ -258,7 +262,7 @@
 .cart-bar {
   position: fixed;
   right: 20rpx;
-  bottom: 22rpx;
+  bottom: calc(22rpx + env(safe-area-inset-bottom));
   left: 20rpx;
   z-index: 10;
   display: grid;
